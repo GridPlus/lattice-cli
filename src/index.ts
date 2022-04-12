@@ -18,7 +18,6 @@ import {
   const token = await getToken({deviceId, password, appName})
   
   const client = generateClient({url, token})
-  console.time('connect')
   const isPaired = await connect(client, deviceId)
   console.timeEnd('connect')
 
@@ -32,7 +31,7 @@ import {
     console.log("HASACTIVEWALLET", hasActiveWallet);
   }
 
-  promptForCommand();
+  promptForCommand(client, "test");
 })();
 
 export { };

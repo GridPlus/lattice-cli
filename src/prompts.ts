@@ -1,5 +1,7 @@
 //@ts-expect-error
 import { prompt,AutoComplete } from "enquirer";
+import { Client } from "gridplus-sdk";
+import { sign } from "./client";
 
 
 export const promptForUrl = async () => 
@@ -30,9 +32,7 @@ export const promptForPairingCode = async () =>
     message: "pairingCode:",
   }).then((r) => r.pairingCode);
 
- 
-
-export const promptForCommand = async () =>{
+export const promptForCommand = async (client: Client, payload: any) =>{
   const cmd = new AutoComplete({
     name: 'command', 
     message: "command",
@@ -56,7 +56,11 @@ export const promptForCommand = async () =>{
       "getFwVersion",
     ]
   })
-  return cmd.run()
+  return cmd.run().then((ans: string )=>{
+    if (ans === "sign") {
+      sign(client, payload)
+    }
+  })
 }
 
 
