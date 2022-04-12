@@ -26,4 +26,4 @@ export const connect = (client: Client, deviceId: string) =>
   });
 
 export const pair = (client: Client, pairingCode: string) =>
-  client.pair(pairingCode);
+  client.pair(pairingCode.toUpperCase()).catch(console.error);

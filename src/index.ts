@@ -18,8 +18,9 @@ import {
   const token = await getToken({deviceId, password, appName})
   
   const client = generateClient({url, token})
-
+  console.time('connect')
   const isPaired = await connect(client, deviceId)
+  console.timeEnd('connect')
 
   if (isPaired) {
     console.log("PAIRED", isPaired);
