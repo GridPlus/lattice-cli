@@ -32,8 +32,15 @@ export const connect = (client: Client, deviceId: string) => {
     });
 };
 
-export const pair = (client: Client, pairingCode: string) =>
-  client.pair(pairingCode.toUpperCase()).catch(console.error);
+export const pair = (client: Client, pairingCode: string) => {
+  console.time("pair");
+  return client
+    .pair(pairingCode.toUpperCase())
+    .catch(console.error)
+    .finally(() => {
+      console.timeEnd("pair");
+    });
+};
 
 export const sign = (client: Client, message: string) => {
   const path = [0x80000000 + 44, 0x80000000 + 60, 0x80000000, 0, 0];
@@ -46,14 +53,15 @@ export const sign = (client: Client, message: string) => {
       payload: message,
     },
   };
-  
-  console.time("sign");
 
-  return client
-  //@ts-expect-error - Types out of date
-    .sign(payload)
-    .catch(console.error)
-    .finally(() => {
-      console.timeEnd("sign");
-    });
+  console.time("sign");
+  return (
+    client
+      //@ts-expect-error - Types out of date
+      .sign(payload)
+      .catch(console.error)
+      .finally(() => {
+        console.timeEnd("sign");
+      })
+  );
 };

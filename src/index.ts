@@ -8,6 +8,7 @@ import {
 
 
 (async function () {
+  console.log("gridplus-cli started")
   dotenv.config();
 
   const appName = "gridplus-cli";
@@ -18,17 +19,20 @@ import {
   const token = await getToken({deviceId, password, appName})
   
   const client = generateClient({url, token})
+
   const isPaired = await connect(client, deviceId)
-  console.timeEnd('connect')
 
   if (isPaired) {
-    console.log("PAIRED", isPaired);
+    console.log("Device paired");
   } else {
     const pairingCode = await promptForPairingCode()
 
     const hasActiveWallet = await pair(client, pairingCode)
 
-    console.log("HASACTIVEWALLET", hasActiveWallet);
+    if (hasActiveWallet) {
+      console.log("Device has an active wallet");
+    }
+    console.log("Device DOES NOT have an active wallet");
   }
 
   promptForCommand(client, "test");
