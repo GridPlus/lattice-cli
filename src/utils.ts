@@ -1,4 +1,4 @@
-import crypto from "crypto"
+import crypto from "crypto";
 
 export function genPrivateKey(
   deviceId: string,
@@ -11,5 +11,5 @@ export function genPrivateKey(
     Buffer.from(appName),
   ]);
 
-  return crypto.createHash('sha256').update(tokenPreImage).digest();
+  return crypto.createHash("sha256").update(tokenPreImage).digest();
 }

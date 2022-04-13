@@ -1,10 +1,9 @@
-//@ts-expect-error
-import { prompt,AutoComplete } from "enquirer";
+//@ts-expect-error - Bad types from enquirer lib
+import { AutoComplete, prompt } from "enquirer";
 import { Client } from "gridplus-sdk";
-import { connect, sign } from "./client";
+import { sign } from "./client";
 
-
-export const promptForUrl = async () => 
+export const promptForUrl = async () =>
   prompt<{ url: string }>({
     type: "input",
     name: "url",
@@ -30,28 +29,25 @@ export const promptForPairingCode = async () =>
     type: "input",
     name: "pairingCode",
     message: "pairingCode:",
-    
   }).then((r) => r.pairingCode);
 
-
 export const promptForMessage = async () =>
-prompt<{ message: string }>({
-  type: "input",
-  initial: "test",
-  name: "message",
-  message: "message:",
-  
-}).then((r) => r.message);
+  prompt<{ message: string }>({
+    type: "input",
+    initial: "test",
+    name: "message",
+    message: "message:",
+  }).then((r) => r.message);
 
-export const promptForCommand = async (client: Client, payload: any) =>{
+export const promptForCommand = async (client: Client, payload: any) => {
   const cmd = new AutoComplete({
-    name: 'command', 
+    name: "command",
     message: "command",
     limit: 10,
     initial: 0,
     choices: [
-      "getAddresses",
       "sign",
+      "getAddresses",
       "addDecoders",
       "getDecoders",
       "removeDecoders",
@@ -63,14 +59,12 @@ export const promptForCommand = async (client: Client, payload: any) =>{
       "getActiveWallet",
       "getStateData",
       "getFwVersion",
-    ]
-  })
-  return cmd.run().then(async (ans: string )=>{
+    ],
+  });
+  return cmd.run().then(async (ans: string) => {
     if (ans === "sign") {
-      const message = await promptForMessage()
-      sign(client, message)
+      const message = await promptForMessage();
+      sign(client, message);
     }
-  })
-}
-
-
+  });
+};
