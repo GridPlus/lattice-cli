@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { writeFileSync } from "fs";
 import { connect, generateClient, pair } from "./client";
 import { getDeviceId, getPassword, getToken, getUrl, loginIsSaved, buildEnvStr } from "./env";
-import {promptForCommand, promptForPairingCode, promptForSaveLogin } from "./prompts";
+import { promptForBool, promptForCommand, promptForString } from "./prompts";
 import { clearPrintedLines, printColor } from "./utils";
 
 (async function () {
@@ -23,7 +23,7 @@ import { clearPrintedLines, printColor } from "./utils";
   const isPaired = await connect(client, deviceId);
 
   if (!isPaired) {
-    const pairingCode = await promptForPairingCode();
+    const pairingCode = await promptForString("Enter pairing code displayed on your Lattice: ");
     const hasActiveWallet = await pair(client, pairingCode);
     if (!hasActiveWallet) {
       printColor("Device does not have an active wallet. Exiting.", "red");
@@ -35,7 +35,7 @@ import { clearPrintedLines, printColor } from "./utils";
   printColor("✅ Connected to Lattice device.\n", "green")
 
   if (!loginIsSaved()) {
-    const shouldSaveLogin = await promptForSaveLogin();
+    const shouldSaveLogin = await promptForBool("Do you want to save this login? ");
     if (shouldSaveLogin) {
       writeFileSync(".env", buildEnvStr(deviceId, password, url));
     }

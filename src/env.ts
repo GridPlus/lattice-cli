@@ -1,22 +1,21 @@
-import { promptForUrl, promptForDeviceId, promptForPassword } from "./prompts";
+import { DEFAULT_URL } from "./constants";
+import { promptForString } from "./prompts";
 import { genPrivateKey } from "./utils";
-
-const DEFAULT_URL = "https://signing.gridpl.us"
 
 export const getUrl = async () =>
   process.env.GPP_URL ? 
     process.env.GPP_URL : 
-    await promptForUrl(DEFAULT_URL);
+    await promptForString("Enter Connection URL: ", DEFAULT_URL);
 
 export const getDeviceId = async () =>
   process.env.GPP_DEVICE_ID ? 
     process.env.GPP_DEVICE_ID : 
-    await promptForDeviceId();
+    await promptForString("Enter Device ID: ");
 
 export const getPassword = async () =>
   process.env.GPP_PASSWORD ? 
     process.env.GPP_PASSWORD : 
-    await promptForPassword();
+    await promptForString("Enter password: ");
 
 export const loginIsSaved = () => 
   process.env.GPP_URL && process.env.GPP_DEVICE_ID && process.env.GPP_PASSWORD;

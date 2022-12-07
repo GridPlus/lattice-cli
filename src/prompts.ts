@@ -2,52 +2,23 @@
 import { AutoComplete, prompt } from "enquirer";
 import { Client } from "gridplus-sdk";
 import { COMMANDS, PUBKEY_TYPES } from './constants';
-import { cmdGetAddresses, cmdGetPubkeys } from "./commands";
+import { cmdGenDepositData, cmdGetAddresses, cmdGetPubkeys } from "./commands";
 import { clearPrintedLines } from "./utils";
 
-export const promptForUrl = async (defaultUrl: string) =>
-  prompt<{ url: string }>({
-    type: "input",
-    name: "url",
-    initial: defaultUrl,
-    message: "Enter Connection URL:",
-  }).then((r) => r.url || defaultUrl);
-
-export const promptForDeviceId = async () =>
-  prompt<{ deviceId: string }>({
-    type: "input",
-    name: "deviceId",
-    message: "Enter Device ID:",
-  }).then((r) => r.deviceId);
-
-export const promptForPassword = async () =>
-  prompt<{ password: string }>({
-    type: "password",
-    name: "password",
-    message: "Enter password:",
-  }).then((r) => r.password);
-
-export const promptForPairingCode = async () =>
-  prompt<{ pairingCode: string }>({
-    type: "input",
-    name: "pairingCode",
-    message: "Enter pairing code displayed on your Lattice:",
-  }).then((r) => r.pairingCode);
-
-export const promptForMessage = async () =>
-  prompt<{ message: string }>({
-    type: "input",
-    initial: "test",
-    name: "message",
-    message: "message:",
-  }).then((r) => r.message);
-
-export const promptForSaveLogin = async () =>
-  prompt<{ saveLogin: boolean }>({
+export const promptForBool = async (message: string) =>
+  prompt<{ value: boolean }>({
     type: "confirm",
-    name: "saveLogin",
-    message: "Do you want to save this login? (y/n)",
-  }).then((r) => r.saveLogin);
+    name: "value",
+    message,
+  }).then((r) => r.value);
+
+export const promptForString = async (message: string, initial?: string) =>
+prompt<{ value: string }>({
+  type: "input",
+  name: "value",
+  initial,
+  message,
+}).then((r) => r.value);
 
 export const promptForCommand = async (client: Client) => {
   const cmd = new AutoComplete({
@@ -56,6 +27,7 @@ export const promptForCommand = async (client: Client) => {
     limit: 10,
     initial: 0,
     choices: [
+      COMMANDS.GENERATE_DEPOSIT_DATA,
       COMMANDS.GET_ADDRESS,
       COMMANDS.GET_PUBLIC_KEY,
       COMMANDS.EXIT,
@@ -69,6 +41,9 @@ export const promptForCommand = async (client: Client) => {
         break;
       case COMMANDS.GET_PUBLIC_KEY:
         await cmdGetPubkeys(client);
+        break;
+      case COMMANDS.GENERATE_DEPOSIT_DATA:
+        await cmdGenDepositData(client);
         break;
       case COMMANDS.EXIT:
         process.exit(0);
@@ -85,15 +60,18 @@ export const promptForCommand = async (client: Client) => {
 //----------------------
 
 // Get Addresses/Pubkeys
-export const promptGetAddressesGetPath = async (defaultPath: string) =>
+export const promptGetPath = async (
+  defaultPath: string, 
+  message: string = "Derivation Path: "
+) =>
   prompt<{ path: string }>({
     type: "input",
     name: "path",
-    message: "Derivation path:",
+    message,
     initial: defaultPath,
   }).then((r) => r.path);
-
-  export const promptGetPubkeyType = async () =>
+ 
+export const promptGetPubkeyType = async () =>
   prompt<{ pubkeyType: string }>({
     type: "select",
     name: "pubkeyType",

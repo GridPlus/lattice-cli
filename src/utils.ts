@@ -74,3 +74,25 @@ export function pathStrToInt(pathStr: string): number[] {
   }
   return indices;
 }
+
+/**
+ * Convert a set of BIP39 indices back to a path string
+ * Accounts for hardened indices
+ */
+export function pathIntToStr(pathInt: number[]): string {
+  const pathStr = pathInt.map((index) => {
+    return index >= 0x80000000 ? `${index - 0x80000000}'` : index;
+  }).join('/');
+  return `m/${pathStr}`;
+}
+
+/**
+ * Determine if an address is a valid ETH1 address.
+ * Checks to ensure we have a 0x-prefixed, hex string representation
+ * of a 20 byte address.
+ */
+export function isValidEth1Addr(addr: string): boolean {
+  return  addr.startsWith("0x") && 
+          addr.length === 42 && 
+          Buffer.from(addr.slice(2), 'hex').toString('hex') === addr.slice(2);
+}
