@@ -14,7 +14,7 @@
   "dependencies": {
     "dotenv": "^16.0.0",
     "enquirer": "^2.3.6",
-    "gridplus-sdk": "^1.2.0",
+    "gridplus-sdk": "^2.4.1",
     "ts-node": "^10.7.0"
   },
   "devDependencies": {
