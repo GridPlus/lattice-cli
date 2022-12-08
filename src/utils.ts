@@ -1,5 +1,8 @@
 import crypto from "crypto";
 
+const cliProgress = require('cli-progress');
+let progressBar: any = null;
+
 /**
  * Generate a deterministic SDK private key based on input data.
  * This will be used to maintain a persistent, encrypted connection 
@@ -67,8 +70,7 @@ export function pathStrToInt(pathStr: string): number[] {
                   parseInt(values[i].replace("'", "")) + 0x80000000 : 
                   parseInt(values[i]);
     if (isNaN(index)) {
-      printColor("Invalid path provided. Please try again.", "red");
-      return [];
+      throw new Error("Invalid path provided. Please try again.");
     }
     indices.push(index);
   }
@@ -95,4 +97,42 @@ export function isValidEth1Addr(addr: string): boolean {
   return  addr.startsWith("0x") && 
           addr.length === 42 && 
           Buffer.from(addr.slice(2), 'hex').toString('hex') === addr.slice(2);
+}
+
+
+/**
+ * Start a global progress bar
+ * @param totalTime: Total time in milliseconds for the progress bar to complete
+ * @param total: Total number of ticks in the progress bar
+ * @param start: Starting tick
+ */
+export function startProgressBar(
+  totalTime: number = 60000,
+  total: number = 100, 
+  start: number = 0, 
+) {
+  if (progressBar) {
+    progressBar.stop();
+  }
+  progressBar = new cliProgress.SingleBar(
+    { format: '{bar} | ETA: {eta}s' }, 
+    cliProgress.Presets.shades_classic
+  );
+  progressBar.start(total, start);
+  const barInterval = setInterval(() => {
+    if (progressBar.value <= total - 1) {
+      progressBar.increment();
+    } else {
+      clearInterval(barInterval);
+    }
+  }, totalTime / total);
+}
+
+/**
+ * Cancel the global progress bar if it exists
+ */
+export function cancelProgressBar() {
+  if (progressBar) {
+    progressBar.stop();
+  }
 }

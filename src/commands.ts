@@ -1,9 +1,35 @@
-import { existsSync, mkdirSync, writeFileSync, } from 'fs';
-import { Client, Constants as SDKConstants } from "gridplus-sdk";
-import { DepositData, Constants as ETH2Constants } from 'lattice-eth2-utils';
-import { DEFAULT_PATHS, PUBKEY_TYPES } from './constants';
-import { promptForBool, promptForString, promptGetPath, promptGetPubkeyType } from './prompts';
-import { clearPrintedLines, isValidEth1Addr, pathIntToStr, pathStrToInt, printColor } from './utils';
+import { 
+  existsSync, 
+  mkdirSync, 
+  writeFileSync, 
+} from 'fs';
+import { 
+  Client, 
+  Constants as SDKConstants 
+} from "gridplus-sdk";
+import { 
+  DepositData, 
+  Constants as ETH2Constants 
+} from 'lattice-eth2-utils';
+import { 
+  DEFAULT_PATHS, 
+  PUBKEY_TYPES 
+} from './constants';
+import { 
+  promptForBool, 
+  promptForString, 
+  promptGetPath, 
+  promptGetPubkeyType 
+} from './prompts';
+import {
+  cancelProgressBar,
+  clearPrintedLines, 
+  isValidEth1Addr, 
+  pathIntToStr, 
+  pathStrToInt, 
+  printColor,
+  startProgressBar
+} from './utils';
 
 /**
  * Get an address for the current active wallet.
@@ -12,15 +38,24 @@ import { clearPrintedLines, isValidEth1Addr, pathIntToStr, pathStrToInt, printCo
  * the derivation path.
  */
 export async function cmdGetAddresses(client: Client) {
-  const pathStr = await promptGetPath(DEFAULT_PATHS.GET_ADDRESS);
-  const startPath = pathStrToInt(pathStr);
+  let startPath, pathStr;
   try {
+    pathStr = await promptGetPath(DEFAULT_PATHS.GET_ADDRESS);
+    startPath = pathStrToInt(pathStr);
+  } catch (err) {
+    printColor("Failed to process input.", "red");
+    return;
+  }
+  try {
+    printColor(`Fetching address... (${pathStr}):`, "yellow");
+    startProgressBar(2500);
     const addresses = await client.getAddresses({ startPath, n: 1 });
+    cancelProgressBar();
+    clearPrintedLines(2);
     printColor(`✅ Fetched address (${pathStr}):`, "green");
     printColor(addresses[0].toString('hex'), "yellow");
   } catch (err) {
     printColor("Failed to get address.", "red");
-    console.error(err)
   }
 }
 
@@ -35,7 +70,7 @@ export async function cmdGetAddresses(client: Client) {
  */
 export async function cmdGetPubkeys(client: Client) {
   const keyType = await promptGetPubkeyType();
-  let flag, defaultPath;
+  let flag, defaultPath, startPath, pathStr;
   switch (keyType) {
     case PUBKEY_TYPES.SECP256K1:
       flag = SDKConstants.GET_ADDR_FLAGS.SECP256K1_PUB;
@@ -53,10 +88,19 @@ export async function cmdGetPubkeys(client: Client) {
       printColor('Error: Unhandled public key type requested.', 'red');
       return;
   }
-  const pathStr = await promptGetPath(defaultPath);
-  const startPath = pathStrToInt(pathStr);
   try {
+    pathStr = await promptGetPath(defaultPath);
+    startPath = pathStrToInt(pathStr);
+  } catch (err) {
+    printColor("Failed to process input.", "red");
+    return;
+  }
+  try {
+    printColor(`Fetching pubkey... (${pathStr}):`, "yellow");
+    startProgressBar(2500);
     const pubkeys = await client.getAddresses({ startPath, n: 1, flag });
+    cancelProgressBar();
+    clearPrintedLines(2);
     printColor(`✅ Fetched pubkey (${pathStr}):`, "green");
     printColor(pubkeys[0].toString('hex'), "yellow");
   } catch (err) {
@@ -65,7 +109,7 @@ export async function cmdGetPubkeys(client: Client) {
 }
 
 export async function cmdGenDepositData(client: Client) {
-  let eth1Key, depositPath, withdrawalKey;
+  let eth1Key, depositPath, depositPathStr, withdrawalKey;
   const encPrivKeys: string[] = [];
   const depositData: any[] = [];
   const useEth1Address = await promptForBool(
@@ -80,16 +124,20 @@ export async function cmdGenDepositData(client: Client) {
       return;
     }
   }
-  const depositPathStr = await promptGetPath(
-    DEFAULT_PATHS.GET_ETH2_DEPOSIT_DATA,
-    "Derivation Path of first Validator: "
-  );
-  depositPath = pathStrToInt(depositPathStr);
-  if (depositPath.length < 1) {
-    printColor("Invalid ETH2 deposit path.", "red");
+  try {
+    depositPathStr = await promptGetPath(
+      DEFAULT_PATHS.GET_ETH2_DEPOSIT_DATA,
+      "Derivation Path of first Validator: "
+    );
+    depositPath = pathStrToInt(depositPathStr);
+    if (depositPath.length < 1) {
+      printColor("Invalid ETH2 deposit path.", "red");
+      return;
+    }
+  } catch (err) {
+    printColor("Failed to process input.", "red");
     return;
   }
-
   while (true) {
     // 1. Get encrypted private key for depositor
     const encPrivReq = {
@@ -97,13 +145,17 @@ export async function cmdGenDepositData(client: Client) {
       params: { path: depositPath, }
     };
     printColor(`Exporting encrypted keystore for validator (${pathIntToStr(depositPath)})...`, "yellow");
+    startProgressBar(32000);
     const encPriv = await client.fetchEncryptedData(encPrivReq);
-    clearPrintedLines(1);
+    cancelProgressBar();
+    clearPrintedLines(2);
     printColor(`✅ Exported encrypted keystore for validator (${pathIntToStr(depositPath)})...`, "green");
     encPrivKeys.push(encPriv.toString());
 
     // 2. Generate deposit data record
     // First determine the withdrawal credentials
+    printColor(`Fetching data for validator (${pathIntToStr(depositPath)})...`, "yellow");
+    startProgressBar(3000);
     if (useEth1Address) {
       withdrawalKey = eth1Key;
     } else {
@@ -116,16 +168,30 @@ export async function cmdGenDepositData(client: Client) {
       });
       withdrawalKey = pubkeys[0];
     }
+    cancelProgressBar();
+    clearPrintedLines(2);
     // Now we can generate the deposit data
     const opts = {
       ...ETH2Constants.NETWORKS.MAINNET_GENESIS, // TODO: Make this configurable
       withdrawalKey,
     };
-    printColor(`Generating deposit data for validator (${pathIntToStr(depositPath)})...`, "yellow");
-    const data = await DepositData.generate(client, depositPath, opts);
-    clearPrintedLines(1);
-    printColor(`✅ Generated deposit data for validator (${pathIntToStr(depositPath)})!`, "green");
-    depositData.push(JSON.parse(data));
+    try {
+      printColor(`Waiting for signature from validator (${pathIntToStr(depositPath)})...`, "yellow");
+      const data = await DepositData.generate(client, depositPath, opts);
+      clearPrintedLines(1);
+      printColor(`✅ Generated deposit data for validator (${pathIntToStr(depositPath)})!`, "green");
+      depositData.push(JSON.parse(data));
+    } catch (err) {
+      printColor('❌ Failed to generate deposit data.', 'red');
+      const shouldContinue = await promptForBool(
+        `Try again? `
+      );
+      if (!shouldContinue) {
+        return;
+      } else {
+        continue;
+      }
+    }
 
     // 3. Ask if user wants to do another one
     depositPath[depositPath.length - 1] += 1;

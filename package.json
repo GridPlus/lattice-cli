@@ -12,6 +12,7 @@
   "author": "Doug Lance",
   "license": "ISC",
   "dependencies": {
+    "cli-progress": "^3.11.2",
     "dotenv": "^16.0.0",
     "enquirer": "^2.3.6",
     "gridplus-sdk": "^2.4.1",
