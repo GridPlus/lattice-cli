@@ -155,7 +155,7 @@ export async function cmdGenDepositData(client: Client) {
     // 2. Generate deposit data record
     // First determine the withdrawal credentials
     printColor(`Fetching data for validator (${pathIntToStr(depositPath)})...`, "yellow");
-    startProgressBar(3000);
+    startProgressBar(2500);
     if (useEth1Address) {
       withdrawalKey = eth1Key;
     } else {
