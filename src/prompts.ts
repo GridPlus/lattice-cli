@@ -5,12 +5,17 @@ import { COMMANDS, PUBKEY_TYPES } from './constants';
 import { cmdGenDepositData, cmdGetAddresses, cmdGetPubkeys } from "./commands";
 import { clearPrintedLines } from "./utils";
 
-export const promptForBool = async (message: string) =>
-  prompt<{ value: boolean }>({
-    type: "confirm",
-    name: "value",
+export const promptForBool = async (message: string) => {
+  const cmd = new AutoComplete({
+    name: "bool",
     message,
-  }).then((r) => r.value);
+    initial: 0,
+    choices: ["Yes", "No"],
+  });
+  return cmd.run().then((ans: string) => {
+    return ans === "Yes";
+  });
+};
 
 export const promptForString = async (message: string, initial?: string) =>
 prompt<{ value: string }>({

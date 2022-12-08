@@ -1,6 +1,9 @@
 # Release binaries
 release
 
+# Default data output dirs
+deposit-data*
+
 # Logs
 logs
 *.log

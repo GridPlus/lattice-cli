@@ -199,6 +199,7 @@ export async function cmdGenDepositData(client: Client) {
       `Generate deposit data for validator (${pathIntToStr(depositPath)})? `
     );
     if (!shouldContinue) {
+      const datetime = new Date().getTime();
       // If we want to exit, generate the files and exit
       const fDir = await promptForString(
         "Where do you wish to save the deposit data files? ",
@@ -208,10 +209,10 @@ export async function cmdGenDepositData(client: Client) {
         mkdirSync(fDir);
       }
       for (let i = 0; i < encPrivKeys.length; i++) {
-        const fPath = fDir + `/validator-${i}-${depositData[i].pubkey}.json`;
+        const fPath = fDir + `/validator-${i}-${depositData[i].pubkey}-${datetime}.json`;
         writeFileSync(fPath, encPrivKeys[i]);
       };
-      writeFileSync(fDir + '/deposit-data.json', JSON.stringify(depositData));
+      writeFileSync(fDir + `/deposit-data-${datetime}.json`, JSON.stringify(depositData));
       printColor(`✅ Validator deposit data files saved to ${fDir}`, "green");
       return;
     }

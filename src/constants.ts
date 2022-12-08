@@ -23,9 +23,36 @@ const PUBKEY_TYPES = {
 
 const DEFAULT_URL = "https://signing.gridpl.us"
 
+const WELCOME_MSG =
+`\
+    __          __  __  _              ________    ____
+   / /   ____ _/ /_/ /_(_)_______     / ____/ /   /  _/
+  / /   / __  / __/ __/ / ___/ _ \\   / /   / /    / /  
+ / /___/ /_/ / /_/ /_/ / /__/  __/  / /___/ /____/ /   
+/_____/\\__,_/\\__/\\__/_/\\___/\\___/   \\____/_____/___/   
+
+Welcome to the Lattice CLI!\n---------------------------\n\
+This program is designed to let you interact with your Lattice device.\n\
+Once connected to your device, you can interact with its active wallet to:\n\
+- Request formatted (Ethereum or Bitcoin) addresses\n\
+- Request public keys\n\
+- Generate validator deposit data\n\
+`
+const WARNING_MSG =
+`\
+⚠️  WARNING: This CLI is alpha software. Please use carefully and at your own risk.\n\
+Please submit any bugs to the project repo: https://github.com/GridPlus/lattice-cli
+
+`
+const MESSAGES = {
+  WELCOME: WELCOME_MSG,
+  WARNING: WARNING_MSG,
+}
+
 export {
   COMMANDS,
   DEFAULT_PATHS,
   DEFAULT_URL,
   PUBKEY_TYPES,
+  MESSAGES,
 }
