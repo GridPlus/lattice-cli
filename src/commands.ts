@@ -12,12 +12,14 @@ import {
   Constants as ETH2Constants 
 } from 'lattice-eth2-utils';
 import { 
-  DEFAULT_PATHS, 
+  DEFAULT_PATHS,
   PUBKEY_TYPES 
 } from './constants';
 import { 
   promptForBool, 
-  promptForString, 
+  promptForNumber,
+  promptForSelect,
+  promptForString,
   promptGetPath, 
   promptGetPubkeyType 
 } from './prompts';
@@ -109,37 +111,48 @@ export async function cmdGetPubkeys(client: Client) {
 }
 
 export async function cmdGenDepositData(client: Client) {
-  let eth1Key, depositPath, depositPathStr, withdrawalKey;
+  let depositPath, depositPathStr, withdrawalKey;
   const encPrivKeys: string[] = [];
   const depositData: any[] = [];
-  const useEth1Address = await promptForBool(
-    "Use ETH1 address for withdrawal credentials? "
+  const withdrawalOpts = [
+    "BLS Key (default)",
+    "ETH1 Address",
+  ];
+  // 1. Get withdrawal key
+  const withdrawalType = await promptForSelect(
+    "Choose withdrawal key type: ",
+    JSON.parse(JSON.stringify(withdrawalOpts)),
   );
-  if (useEth1Address) {
-    eth1Key = await promptForString(
+  if (withdrawalType === withdrawalOpts[1]) {
+    // Use ETH1 address
+    withdrawalKey = await promptForString(
       "Enter ETH1 withdrawal address: "
     );
-    if (!isValidEth1Addr(eth1Key)) {
+    if (!isValidEth1Addr(withdrawalKey)) {
       printColor("Invalid ETH1 address.", "red");
       return;
-    }
+    }  
   }
   try {
-    depositPathStr = await promptGetPath(
-      DEFAULT_PATHS.GET_ETH2_DEPOSIT_DATA,
-      "Derivation Path of first Validator: "
+    // 2. Get the starting validator index
+    const validatorIndex = await promptForNumber(
+      'Please specify the starting validator index:',
+      0
     );
-    depositPath = pathStrToInt(depositPathStr);
-    if (depositPath.length < 1) {
-      printColor("Invalid ETH2 deposit path.", "red");
+    if (isNaN(validatorIndex) || validatorIndex < 0) {
+      printColor("Invalid validator index.", "red");
       return;
-    }
+    };
+    depositPathStr = DEFAULT_PATHS.GET_ETH2_DEPOSIT_DATA;
+    depositPath = pathStrToInt(depositPathStr);
+    depositPath[2] = validatorIndex;
   } catch (err) {
     printColor("Failed to process input.", "red");
     return;
   }
+  // 3. Generate deposit data
   while (true) {
-    // 1. Get encrypted private key for depositor
+    // 3.1. Get encrypted private key for depositor
     const encPrivReq = {
       schema: SDKConstants.ENC_DATA.SCHEMAS.BLS_KEYSTORE_EIP2335_PBKDF_V4,
       params: { path: depositPath, }
@@ -152,13 +165,13 @@ export async function cmdGenDepositData(client: Client) {
     printColor(`✅ Exported encrypted keystore for validator (${pathIntToStr(depositPath)})...`, "green");
     encPrivKeys.push(encPriv.toString());
 
-    // 2. Generate deposit data record
+    // 3.2. Generate deposit data record
     // First determine the withdrawal credentials
     printColor(`Fetching data for validator (${pathIntToStr(depositPath)})...`, "yellow");
     startProgressBar(2500);
-    if (useEth1Address) {
-      withdrawalKey = eth1Key;
-    } else {
+    if (!withdrawalKey) {
+      // If no withdrawalKey was set, we will be using the default
+      // BLS withdrawal key.
       const pubkeys = await client.getAddresses({
         // BLS withdrawal key path, by standard, is one derivation index
         // shorter than the deposit path, but with the same path otherwise.
@@ -193,12 +206,13 @@ export async function cmdGenDepositData(client: Client) {
       }
     }
 
-    // 3. Ask if user wants to do another one
+    // 3.3. Ask if user wants to do another one
     depositPath[depositPath.length - 1] += 1;
     const shouldContinue = await promptForBool(
-      `Generate deposit data for validator (${pathIntToStr(depositPath)})? `
+      `Generate deposit data for next validator? (${depositPath[2] + 1})? `
     );
     if (!shouldContinue) {
+      // 4. Build export files
       const datetime = new Date().getTime();
       // If we want to exit, generate the files and exit
       const fDir = await promptForString(
@@ -216,5 +230,7 @@ export async function cmdGenDepositData(client: Client) {
       printColor(`✅ Validator deposit data files saved to ${fDir}`, "green");
       return;
     }
+    // Otherwise we continue to the next one
+    depositPath[2] += 1;
   }
 }

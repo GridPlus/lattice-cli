@@ -1,29 +1,52 @@
 //@ts-expect-error - Bad types from enquirer lib
-import { AutoComplete, prompt } from "enquirer";
+import { AutoComplete, NumberPrompt, Toggle, prompt } from "enquirer";
 import { Client } from "gridplus-sdk";
 import { COMMANDS, PUBKEY_TYPES } from './constants';
 import { cmdGenDepositData, cmdGetAddresses, cmdGetPubkeys } from "./commands";
 import { clearPrintedLines } from "./utils";
 
-export const promptForBool = async (message: string) => {
-  const cmd = new AutoComplete({
+export const promptForBool = async (message: string, defaultTrue=true) => {
+  const cmd = new Toggle({
     name: "bool",
     message,
-    initial: 0,
-    choices: ["Yes", "No"],
+    enabled: "Yes",
+    disabled: "No",
+    initial: defaultTrue ? "Yes" : "No",
   });
-  return cmd.run().then((ans: string) => {
-    return ans === "Yes";
+  return cmd.run().then((ans: boolean) => {
+    return ans;
   });
 };
 
-export const promptForString = async (message: string, initial?: string) =>
+export const promptForString = async (message: string, initial?: string, isPw?: boolean) =>
 prompt<{ value: string }>({
-  type: "input",
+  type: isPw ? "password" : "input",
   name: "value",
   initial,
   message,
 }).then((r) => r.value);
+
+export const promptForNumber = async (message: string, initial?: number) => {
+  const cmd = new NumberPrompt({
+    name: "value",
+    message,
+    initial,
+  });
+  return cmd.run().then((ans: number) => {
+    return ans;
+  });
+};
+
+export const promptForSelect = async (message: string, choices: string[]) => {
+  const cmd = new AutoComplete({
+    name: "value",
+    message,
+    choices,
+  });
+  return cmd.run().then((ans: string) => {
+    return ans;
+  });
+}
 
 export const promptForCommand = async (client: Client) => {
   const cmd = new AutoComplete({

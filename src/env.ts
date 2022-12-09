@@ -2,20 +2,20 @@ import { DEFAULT_URL } from "./constants";
 import { promptForString } from "./prompts";
 import { genPrivateKey } from "./utils";
 
-export const getUrl = async () =>
-  process.env.GPP_URL ? 
+export const getUrl = async (useEnv: boolean = true) =>
+  process.env.GPP_URL && useEnv ? 
     process.env.GPP_URL : 
     await promptForString("Enter Connection URL: ", DEFAULT_URL);
 
-export const getDeviceId = async () =>
-  process.env.GPP_DEVICE_ID ? 
+export const getDeviceId = async (useEnv: boolean = true) =>
+  process.env.GPP_DEVICE_ID && useEnv ? 
     process.env.GPP_DEVICE_ID : 
     await promptForString("Enter Device ID: ");
 
-export const getPassword = async () =>
-  process.env.GPP_PASSWORD ? 
+export const getPassword = async (useEnv: boolean = true) =>
+  process.env.GPP_PASSWORD && useEnv ? 
     process.env.GPP_PASSWORD : 
-    await promptForString("Enter password: ");
+    await promptForString("Enter password: ", undefined, true);
 
 export const loginIsSaved = () => 
   process.env.GPP_URL && process.env.GPP_DEVICE_ID && process.env.GPP_PASSWORD;
