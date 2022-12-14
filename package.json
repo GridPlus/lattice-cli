@@ -1,23 +1,24 @@
 {
-  "name": "gridplus-cli",
+  "name": "lattice-cli",
   "version": "0.0.1",
   "description": "CLI for interacting with gridplus-sdk",
-  "main": "./dist/gridplus-cli.js",
-  "types": "./dist/gridplus-cli.d.ts",
+  "main": "./dist/lattice-cli.js",
+  "types": "./dist/lattice-cli.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "ts-node ./src/gridplus-cli.ts",
-    "release": "npm run build && npx pkg -c package.json dist/gridplus-cli.js"
+    "start": "ts-node ./src/lattice-cli.ts",
+    "release": "npm run build && npx pkg -c package.json dist/lattice-cli.js"
   },
   "keywords": [],
   "author": "Doug Lance",
   "license": "ISC",
   "dependencies": {
-    "cli-progress": "^3.11.2",
+    "@types/spinnies": "^0.5.0",
     "dotenv": "^16.0.0",
     "enquirer": "^2.3.6",
     "gridplus-sdk": "^2.4.1",
-    "lattice-eth2-utils": "^0.2.0",
+    "lattice-eth2-utils": "^0.4.2",
+    "spinnies": "^0.5.1",
     "ts-node": "^10.7.0"
   },
   "devDependencies": {
@@ -26,7 +27,11 @@
     "typescript": "^4.6.3"
   },
   "pkg": {
-    "targets": [ "node18-linux-x64", "node18-macos-x64", "node18-win-x64" ],
+    "targets": [
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-win-x64"
+    ],
     "outputPath": "release"
   }
 }

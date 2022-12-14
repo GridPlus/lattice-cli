@@ -98,16 +98,3 @@ export const promptGetPath = async (
     message,
     initial: defaultPath,
   }).then((r) => r.path);
- 
-export const promptGetPubkeyType = async () =>
-  prompt<{ pubkeyType: string }>({
-    type: "select",
-    name: "pubkeyType",
-    message: "Pubkey Type:",
-    initial: 0,
-    choices: [
-      PUBKEY_TYPES.SECP256K1,
-      PUBKEY_TYPES.ED25519,
-      PUBKEY_TYPES.BLS12_381_G1,
-    ],
-  }).then((r) => r.pubkeyType);
