@@ -281,9 +281,7 @@ async function getBlsWithdrawalKey(client: Client, depositPath: number[]): Promi
  * @return {string} The encrypted EIP2335 keystore.
  */
 async function getKeystore(client: Client, depositPath: number[]): Promise<string> {
-  // return await DepositData.exportKeystore(client, depositPath);
-// TESTING ONLY
-  return await DepositData.exportKeystore(client, depositPath, 500);
+  return await DepositData.exportKeystore(client, depositPath);
 }
 
 /**
