@@ -51,33 +51,24 @@ import {
  *    creating validators.
  */
 export async function cmdGenDepositData(client: Client) {
-  let depositPath, depositPathStr, eth1Addr, depositFunc;
+  let depositPath, depositPathStr, eth1Addr;
   const keystores: string[] = [];
   const depositData: any[] = [];
   const exportOpts = [
-    "JSON file for Ethereum Launchpad",
+    "JSON file for Ethereum Launchpad (default)",
     "Raw transaction calldata",
   ];
   const withdrawalOpts = [
-    "BLS Key (default)",
-    "ETH1 Address",
+    "ETH1 Address (default)",
+    "BLS Key",
   ];
-  // 1. Determine what type of deposit data to export
-  const exportType = await promptForSelect(
-    "What type of deposit data do you want to export? ",
-    JSON.parse(JSON.stringify(exportOpts)),
-  );
-  const exportCalldata = exportType === exportOpts[1];
-  depositFunc = exportCalldata ? 
-                DepositData.generate : 
-                DepositData.generateObject;
 
-  // 2. Get withdrawal key
+  // 1. Get withdrawal credentials info
   const withdrawalType = await promptForSelect(
     "Choose withdrawal key type: ",
     JSON.parse(JSON.stringify(withdrawalOpts)),
   );
-  if (withdrawalType === withdrawalOpts[1]) {
+  if (withdrawalType === withdrawalOpts[0]) {
     // Use ETH1 address
     eth1Addr = await promptForString(
       "Enter ETH1 withdrawal address: "
@@ -86,7 +77,26 @@ export async function cmdGenDepositData(client: Client) {
       printColor("Invalid ETH1 address.", "red");
       return;
     }
+  } else {
+    // BLS withdrawal keys appear to be unofficially deprecated, as you
+    // now must convert a BLS withdrawal credential to an ETH1 version
+    // in order to withdraw. This makes sense... because the execution
+    // layer needs to send withdrawn ether to an ETH1 address!
+    const shouldContinue = await promptForBool(
+      "WARNING: BLS withdrawal credentials must be upgraded to ETH1 credentials " +
+      "before the validator can withdraw ether.\nAre you sure you want to use BLS credentials? ",
+    );
+    if (!shouldContinue) {
+      return;
+    }
   }
+
+  // 2. Determine what type of deposit data to export
+  const exportType = await promptForSelect(
+    "What type of deposit data do you want to export? ",
+    JSON.parse(JSON.stringify(exportOpts)),
+  );
+  const exportCalldata = exportType === exportOpts[1]; 
 
   // 3. Get the starting validator index
   try {
