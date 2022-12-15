@@ -1,4 +1,4 @@
-import Spinnies from 'spinnies';
+import { AbiCoder } from '@ethersproject/abi';
 import { 
   existsSync, 
   mkdirSync, 
@@ -12,8 +12,10 @@ import {
   DepositData, 
   Constants as ETH2Constants 
 } from 'lattice-eth2-utils';
+import Spinnies from 'spinnies';
 import { 
-  DEFAULT_PATHS, 
+  DEFAULT_PATHS,
+  DEPOSITS, 
 } from '../constants';
 import { 
   promptForBool, 
@@ -24,6 +26,7 @@ import {
 import {
   clearPrintedLines, 
   closeSpinner,
+  getDecimalPlaces,
   isValidEth1Addr, 
   pathIntToStr, 
   pathStrToInt, 
@@ -51,7 +54,7 @@ import {
  *    creating validators.
  */
 export async function cmdGenDepositData(client: Client) {
-  let depositPath, depositPathStr, eth1Addr;
+  let depositPath, depositPathStr, eth1Addr, startingIdx;
   const keystores: string[] = [];
   const depositData: any[] = [];
   const exportOpts = [
@@ -91,36 +94,39 @@ export async function cmdGenDepositData(client: Client) {
     }
   }
 
-  // 2. Determine what type of deposit data to export
+  // 2. Determine deposit amount. Note that this will be for ALL validators!
+  const depositAmountGwei = await getDepositAmountGwei();
+
+  // 3. Determine what type of deposit data to export
   const exportType = await promptForSelect(
     "What type of deposit data do you want to export? ",
     JSON.parse(JSON.stringify(exportOpts)),
   );
   const exportCalldata = exportType === exportOpts[1]; 
 
-  // 3. Get the starting validator index
+  // 4. Get the starting validator index
   try {
-    const validatorIndex = await promptForNumber(
+    startingIdx = await promptForNumber(
       'Please specify the starting validator index:',
       0
     );
-    if (isNaN(validatorIndex) || validatorIndex < 0) {
+    if (isNaN(startingIdx) || startingIdx < 0) {
       printColor("Invalid validator index.", "red");
       return;
     };
     depositPathStr = DEFAULT_PATHS.GET_ETH2_DEPOSIT_DATA;
     depositPath = pathStrToInt(depositPathStr);
-    depositPath[2] = validatorIndex;
+    depositPath[2] = startingIdx;
   } catch (err) {
     printColor("Failed to process input.", "red");
     return;
   }
   
-  // 4. Build deposit data in interactive loop
+  // 5. Build deposit data in interactive loop
   while (true) {
     let withdrawalKey = eth1Addr;
 
-    // 4.1. Get encrypted private key for depositor
+    // 5.1. Get encrypted private key for depositor
     const keystoreSpinner = startNewSpinner(
       `Exporting encrypted keystore for validator #${depositPath[2]}. This will take about 30 seconds.`, 
       "yellow"
@@ -140,7 +146,7 @@ export async function cmdGenDepositData(client: Client) {
       );
     }
 
-    // 4.2. Build deposit data record
+    // 5.2. Build deposit data record
     // First determine the withdrawal credentials
     if (!withdrawalKey) {
       const withdrawalKeySpinner = startNewSpinner(
@@ -170,13 +176,22 @@ export async function cmdGenDepositData(client: Client) {
       "yellow"
     );
     try {
-      const record = await getDepositData(
-        client, 
-        depositPath, 
-        exportCalldata, 
-        withdrawalKey
-      );
-      depositData.push(JSON.parse(record));
+      const opts = {
+        ...ETH2Constants.NETWORKS.MAINNET_GENESIS, // TODO: Make this configurable
+        withdrawalKey,
+        amountGwei: depositAmountGwei,
+      };
+      if (exportCalldata) {
+        // If the user wants to export calldata, generate that, then pull out
+        // the pubkey, and add both as an object to the running `depositData`.
+        const calldata = await DepositData.generate(client, depositPath, opts);
+        depositData.push({ pubkey: getPubkeyFromCalldata(calldata), calldata });
+      } else {
+        // Otherwise, fetch deposit data object that can be used with the
+        // Ethereum Launchpad for adding validator(s).
+        const depositObj = await DepositData.generateObject(client, depositPath, opts);
+        depositData.push(depositObj)
+      }
       closeSpinner(
         depositDataSpinner,
         `Successfully built deposit data for validator #${depositPath[2]}.`
@@ -191,13 +206,13 @@ export async function cmdGenDepositData(client: Client) {
         `Try again? `
       );
       if (!shouldContinue) {
-        return;
+        break;
       } else {
         continue;
       }
     }
 
-    // 4.3. Ask if user wants to do another one
+    // 5.3. Ask if user wants to do another one
     const shouldContinue = await promptForBool(
       `Build deposit data for next validator? (${depositPath[2] + 1})? `
     );
@@ -208,7 +223,22 @@ export async function cmdGenDepositData(client: Client) {
     depositPath[2] += 1;
   }
 
-  // 4. Build export files
+  // 6. Build export files
+  if (depositData.length === 0) {
+    // If no validator data was generated, exit here
+    return;
+  } else if (depositData.length === 1) {
+    printColor(
+      `\nDone building data for validator ${startingIdx}.`, 
+      "green"
+    );
+  } else {
+    printColor(
+      `\nDone building data for validators ${startingIdx}-` +
+      `${startingIdx + depositData.length - 1}.`, 
+      "green"
+    );
+  }
   const datetime = new Date().getTime();
   // If we want to exit, generate the files and exit
   const fDir = await promptForString(
@@ -218,7 +248,7 @@ export async function cmdGenDepositData(client: Client) {
   if (!existsSync(fDir)) {
     mkdirSync(fDir);
   }
-  for (let i = 0; i < keystores.length; i++) {
+  for (let i = 0; i < depositData.length; i++) {
     const fPath = fDir + `/validator-${i}-${depositData[i].pubkey}-${datetime}.json`;
     writeFileSync(fPath, keystores[i]);
   };
@@ -230,6 +260,7 @@ export async function cmdGenDepositData(client: Client) {
 }
 
 /**
+ * @internal
  * Get the BLS withdrawal key associated with a deposit BIP39 path.
  * Derived according to EIP2334.
  * @return {string} The BLS withdrawal key as a hex string (no 0x prefix).
@@ -250,28 +281,75 @@ async function getBlsWithdrawalKey(client: Client, depositPath: number[]): Promi
  * @return {string} The encrypted EIP2335 keystore.
  */
 async function getKeystore(client: Client, depositPath: number[]): Promise<string> {
-  return await DepositData.exportKeystore(client, depositPath);
+  // return await DepositData.exportKeystore(client, depositPath);
+// TESTING ONLY
+  return await DepositData.exportKeystore(client, depositPath, 500);
 }
 
 /**
- * Get deposit data depending on the export type.
- * @return {string} JSON string representing deposit record
+ * @internal
+ * Extract the pubkey from a deposit calldata string.
+ * @return {string} The pubkey as a hex string (no 0x prefix).
  */
-async function getDepositData(
-  client: Client, 
-  depositPath: number[], 
-  exportCalldata: boolean,
-  withdrawalKey?: string
-): Promise<string> {
-  const opts = {
-    ...ETH2Constants.NETWORKS.MAINNET_GENESIS, // TODO: Make this configurable
-    withdrawalKey,
-  };
-  if (exportCalldata) {
-    const data = await DepositData.generate(client, depositPath, opts);
-    return JSON.stringify({ pubkey: "", calldata: data });
-  } else {
-    const data = await DepositData.generateObject(client, depositPath, opts);
-    return JSON.stringify(data);
+function getPubkeyFromCalldata(calldata: string): string {
+  const coder = new AbiCoder();
+  const decoded = coder.decode(ETH2Constants.ABIS.DEPOSIT, calldata);
+  if (decoded[0].length / 2 !== 48) {
+    throw new Error("Invalid pubkey length encoded into message. Aborting.");
   }
+  return decoded[0];
+}
+
+/**
+ * Prompt the user to enter a deposit amount, which will be used to build
+ * deposit data for ALL validators being constructed.
+ * @returns {number} The deposit amount in Gwei.
+ */
+async function getDepositAmountGwei(): Promise<number> {
+  const GWEI_POWER = 9;
+  let gotAmount = false;
+  let depositAmountETH = await promptForNumber(
+    'Set deposit amount for all validators you will generate (ETH):',
+    DEPOSITS.DEFAULT_AMOUNT_ETH 
+  );
+  while (!gotAmount) {
+    // If the amount equals the default deposit amount, continue
+    if (depositAmountETH === DEPOSITS.DEFAULT_AMOUNT_ETH) {
+      gotAmount = true;
+      break;
+    }
+    // If this is an invalid amount, collect a new one
+    else if (
+      depositAmountETH < DEPOSITS.MIN_AMOUNT_ETH || 
+      depositAmountETH > DEPOSITS.MAX_AMOUNT_ETH
+    ) {
+      depositAmountETH = await promptForNumber(
+        `Deposit amount must be between ${DEPOSITS.MIN_AMOUNT_ETH} and ` +
+        `${DEPOSITS.MAX_AMOUNT_ETH} ETH.\nSet deposit amount (ETH):`,
+        DEPOSITS.DEFAULT_AMOUNT_ETH
+      );
+    }
+    // Make sure deposit amount is convertable to Gwei (10**9 Gwei = 1 ETH)
+    else if (getDecimalPlaces(depositAmountETH) > GWEI_POWER) {
+      depositAmountETH = await promptForNumber(
+        `Too many decimal places.\nSet deposit amount (ETH):`,
+        DEPOSITS.DEFAULT_AMOUNT_ETH
+      )
+    }
+    // If this is a nonstandard amount, ask for confirmation
+    else if (depositAmountETH !== DEPOSITS.DEFAULT_AMOUNT_ETH) {
+      const shouldContinue = await promptForBool(
+        `WARNING: Deposits are for ${DEPOSITS.DEFAULT_AMOUNT_ETH} ETH by default.\n` +
+        `Are you sure you want to use ${depositAmountETH} ETH? `,
+      );
+      if (shouldContinue) {
+        gotAmount = true;
+        break;
+      }
+    }
+  }
+
+  // Convert to Gwei and return. Fortunately we are within a u64 so we can
+  // use JS math.
+  return depositAmountETH * (10 ** 9);
 }

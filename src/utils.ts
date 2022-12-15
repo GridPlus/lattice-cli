@@ -117,3 +117,12 @@ export function isValidEth1Addr(addr: string): boolean {
           addr.length === 42 && 
           Buffer.from(addr.slice(2), 'hex').toString('hex') === addr.slice(2);
 }
+
+/**
+ * Determine the number of decimal places for a number.
+ */
+export function getDecimalPlaces(num: number): number {
+  const str = num.toString();
+  const decimalIndex = str.indexOf('.');
+  return decimalIndex === -1 ? 0 : str.length - decimalIndex - 1;
+}

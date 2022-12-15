@@ -23,6 +23,17 @@ const PUBKEY_TYPES = {
 
 const DEFAULT_URL = "https://signing.gridpl.us"
 
+const DEPOSITS = {
+  DEFAULT_AMOUNT_ETH: 32,
+  // Technically the max amount is U64_MAX=1000000000 ETH
+  // but that seems insane. I don't think there's any reason
+  // to ever deposit more than 32 ETH, so I chose 64 kinda
+  // arbitrarily here. If anyone has a need for more, pls
+  // open a pull request.
+  MAX_AMOUNT_ETH: 64,
+  MIN_AMOUNT_ETH: 1,
+}
+
 const WELCOME_MSG =
 `\
     __          __  __  _              ________    ____
@@ -53,6 +64,7 @@ export {
   COMMANDS,
   DEFAULT_PATHS,
   DEFAULT_URL,
+  DEPOSITS,
   MESSAGES,
   PUBKEY_TYPES,
 }
