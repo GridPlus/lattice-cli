@@ -9,7 +9,7 @@ let spinner: Spinnies;
  * Note that `password` functions as a salt so if the device is super
  * secure, you should use a strong one.
  */
-export function genPrivateKey(
+export function genSDKClientPrivKey(
   deviceId: string,
   password: string,
   appName: string
@@ -19,7 +19,6 @@ export function genPrivateKey(
     Buffer.from(password),
     Buffer.from(appName),
   ]);
-
   return crypto.createHash("sha256").update(tokenPreImage).digest();
 }
 

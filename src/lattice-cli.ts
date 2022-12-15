@@ -1,23 +1,23 @@
+/**
+ * The Lattice CLI is designed to extend functionality from the GridPlus SDK
+ * and associated tools so that a user can easily interact with their Lattice.
+ * 
+ * This file is the entry point for the CLI. It handles the initial setup.
+ */
 import dotenv from "dotenv";
 import { writeFileSync } from "fs";
 import { Client } from 'gridplus-sdk';
-import { MESSAGES } from './constants'
-import { 
-  getDeviceId, 
-  getPassword, 
-  getToken, 
-  getUrl, 
-  loginIsSaved, 
-  buildEnvStr 
-} from "./env";
+import { APP_NAME, DEFAULT_URL, MESSAGES } from './constants'
 import { 
   promptForBool, 
   promptForCommand, 
   promptForString 
 } from "./prompts";
+import { SDKLoginCredentials } from './types';
 import { 
   clearPrintedLines, 
   closeSpinner,
+  genSDKClientPrivKey,
   printColor,
   startNewSpinner,
 } from "./utils";
@@ -26,11 +26,13 @@ import {
   dotenv.config();
   printStartupText();
   let loggedIn = false, useEnv = false;
-  let client: Client, deviceId: string, password: string, url: string;
+  let client: Client, creds: SDKLoginCredentials;
   const loginExists = loginIsSaved();
 
   // Make sure the user wants to use the CLI
-  const shouldContinue = await promptForBool("Do you want to continue using alpha software? ");
+  const shouldContinue = await promptForBool(
+    "Do you want to continue using alpha software? "
+  );
   if (!shouldContinue) {
     process.exit(0);
   }
@@ -44,25 +46,26 @@ import {
 
   // Log into the device
   while (!loggedIn) {
-    // Setup GridPlus SDK Client object
-    const appName = "Lattice CLI";
-    deviceId = await getDeviceId(useEnv);
-    password = await getPassword(useEnv);
-    url = await getUrl(useEnv);
-    const token = await getToken({ deviceId, password, appName });
-    client = new Client({
-      name: appName,
-      baseUrl: url,
-      privKey: token,
-      skipRetryOnWrongWallet: false,
-      timeout: 5000,
-    });
+    // Get the login credentials
+    creds = await getSDKCreds(useEnv);
+    // Sanity check the credentials
+    if (creds.deviceId.length < 6) {
+      printColor("Device ID must be at least 6 characters.", "red");
+      continue;
+    } else if (creds.password.length < 6) {
+      printColor("Password must be at least 6 characters.", "red");
+    } else if (creds.url.indexOf("https://") < 0) {
+      printColor("URL must start with 'https://'.", "red");
+    }
+
+    // Instantiate the SDK client
+    client = await instantiateSDKClient(creds);
 
     // Connect to the target Lattice
     let isPaired;
     const connectSpinner = startNewSpinner('Looking for Lattice.');
     try {
-      isPaired = await client.connect(deviceId);
+      isPaired = await client.connect(creds.deviceId);
       closeSpinner(connectSpinner, "Found Lattice.");
     } catch (err) {
       closeSpinner(
@@ -70,14 +73,16 @@ import {
         `Failed to connect to Lattice: ${err instanceof Error ? err.message : ''}`,
         false
       );
-      loggedIn = false;
+      continue;
     }
 
     // Pair with the Lattice if there is no permission
     if (!isPaired) {
       let pairSpinner;
       try {
-        const pairingCode = await promptForString("Enter pairing code displayed on your Lattice: ");
+        const pairingCode = await promptForString(
+          "Enter pairing code displayed on your Lattice: "
+        );
         pairSpinner = startNewSpinner('Pairing with Lattice.');
         const hasActiveWallet = await client.pair(pairingCode.toUpperCase());
         if (!hasActiveWallet) {
@@ -90,12 +95,13 @@ import {
         if (pairSpinner) {
           closeSpinner(
             pairSpinner,
-            `Failed to pair with Lattice.\nMake sure you do NOT already have a permission for "${appName}".\n` +
+            `Failed to pair with Lattice.\nMake sure you do NOT already ` +
+            `have a permission for "${APP_NAME}".\n` +
             ` ${err instanceof Error ? err.message : ''}`,
             false
           );
         }
-        loggedIn = false;
+        continue;
       }
     } else {
       loggedIn = true;
@@ -119,7 +125,7 @@ import {
         "Do you want to save this login? "
       );
       if (shouldSaveLogin) {
-        writeFileSync(".env", buildEnvStr(deviceId, password, url));
+        saveLogin(creds);
       }
     }
   // Start CLI
@@ -129,8 +135,89 @@ import {
 
 export {};
 
+// Print the startup text wall
 function printStartupText() {
   clearPrintedLines(100);
   printColor(MESSAGES.WELCOME, "green");
   printColor(MESSAGES.WARNING, "yellow");
+}
+
+// Get a set of login credentials from the user
+async function getSDKCreds(useEnv: boolean): Promise<SDKLoginCredentials> {
+  const deviceId = await getDeviceId(useEnv);
+  const password = await getPassword(useEnv);
+  const url = await getUrl(useEnv);
+  return { deviceId, password, url };
+}
+
+async function getDeviceId(useEnv: boolean): Promise<string> {
+  let deviceId;
+  if (!!process.env.LATTICE_DEVICE_ID && useEnv) {
+    deviceId = process.env.LATTICE_DEVICE_ID;
+  } else {
+    deviceId = await promptForString("Enter Lattice Device ID: ");
+  }
+  if (deviceId.length < 6) {
+    printColor("Device ID must be at least 6 characters.", "red");
+    return await getDeviceId(useEnv);
+  }
+  return deviceId;
+}
+
+async function getPassword(useEnv: boolean): Promise<string> {
+  let password;
+  if (!!process.env.LATTICE_PASSWORD && useEnv) {
+    password = process.env.LATTICE_PASSWORD;
+  } else {
+    password = await promptForString("Enter Lattice Password: ", "", true);
+  }
+  if (password.length < 6) {
+    printColor("Password must be at least 6 characters.", "red");
+    return await getPassword(useEnv);
+  }
+  return password;
+}
+
+async function getUrl(useEnv: boolean): Promise<string> {
+  let url;
+  if (!!process.env.LATTICE_CONNECT_URL && useEnv) {
+    url = process.env.LATTICE_CONNECT_URL;
+  } else {
+    url = await promptForString("Enter Connection URL: ", DEFAULT_URL);
+  }
+  if (url.indexOf("https://") !== 0) {
+    printColor("URL must start with 'https://'", "red");
+    return await getUrl(useEnv);
+  }
+  return url;
+}
+
+// Instantiate an SDK instance given a set of login credentials
+function instantiateSDKClient(creds: SDKLoginCredentials): Client {
+  const { deviceId, password, url } = creds;
+  const privKey = genSDKClientPrivKey(deviceId, password, APP_NAME);
+  return new Client({
+    name: APP_NAME,
+    baseUrl: url,
+    privKey,
+    skipRetryOnWrongWallet: false,
+    timeout: 5000,
+  });
+}
+
+// Determine if a full set of login credentials are saved to `.env`
+function loginIsSaved() {
+  return  process.env.LATTICE_DEVICE_ID && 
+          process.env.LATTICE_PASSWORD && 
+          process.env.LATTICE_CONNECT_URL;
+}
+
+// Save a full set of login credentials to `.env`
+function saveLogin(creds: SDKLoginCredentials) {
+  writeFileSync(
+    ".env",
+    `LATTICE_DEVICE_ID="${creds.deviceId}"\n` +
+    `LATTICE_PASSWORD="${creds.password}"\n` + 
+    `LATTICE_CONNECT_URL="${creds.url}"`
+  );
 }

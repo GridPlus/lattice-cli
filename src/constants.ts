@@ -21,6 +21,7 @@ const PUBKEY_TYPES = {
   BLS12_381_G1: 'bls12_381_g1',
 }
 
+const APP_NAME = "Lattice CLI"
 const DEFAULT_URL = "https://signing.gridpl.us"
 
 const DEPOSITS = {
@@ -61,6 +62,7 @@ const MESSAGES = {
 }
 
 export {
+  APP_NAME,
   COMMANDS,
   DEFAULT_PATHS,
   DEFAULT_URL,
