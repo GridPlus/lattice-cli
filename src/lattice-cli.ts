@@ -40,7 +40,7 @@ import {
   // Determine if user wants to use the existing connection
   if (loginExists) {
     useEnv = await promptForBool(
-      "Use existing login to re-connect to the same Lattice? "
+      "Use existing Lattice connection? "
     );
   }
 
@@ -133,8 +133,8 @@ import {
     if (!loginExists || !useEnv) {
       const shouldSaveLogin = await promptForBool(
         loginExists ? 
-        "Do you want to replace your existing login with this one? " :
-        "Do you want to save this login? "
+        "Do you want to replace your existing connection with this one? " :
+        "Do you want to save this connection? "
       );
       if (shouldSaveLogin) {
         saveLogin(creds);

@@ -4,41 +4,49 @@
 
 👋 Welcome to the GridPlus CLI. This software is intended to facilitate easy access to your [Lattice](https://gridplus.io/lattice) hardware wallet device for important functionality that may be best served for the command line.
 
-![Lattice CLI](./static/lattice-cli.png)
+## Installation
 
-## Contents
+The easiest way to use this CLI is to [download a release](https://github.com/GridPlus/lattice-cli/releases) for your computer and run it.
 
-* [Logging Into a Lattice](#logging-into-a-lattice)
+You may also clone this repo and build from source (please ensure you are using node 18+):
+
+```
+npm i && npm run release
+```
+
+This will generate a set of binaries in `./releases`. Run the one you wish to use.
+
+# Contents
+
+* [Connecting to a Lattice](#connecting-to-a-lattice)
 * [Commands](#commands)
   * [Export ETH2 Deposit Data](#export-eth2-deposit-data)
   * [Get Address](#get-address)
   * [Get Public Key](#get-public-key)
 
-# Logging Into a Lattice
+# 🔗 Connecting to a Lattice
 
-Before you can use the CLI, you will need to connect to the target Lattice. Note that this device must be connected to the internet and discoverable.
+Before you can use the CLI, you will need to connect to an online [Lattice](https://gridplus.io/lattice). 
 
-### Setting Initial Login Info
+### Discovering your Lattice
 
-> You can skip the following prompts by setting up a `.env` file using the format provided in `.env.sample`. This section explains what each of the items is.
-
-If you don't have config options saved, you will need to answer some prompts in order to connect for the first time:
+If you don't have a saved connection between your Lattice and this CLI, you will need to answer some prompts in order to connect for the first time:
 
 * **Enter Device ID:** Needed to discover your Lattice. To find yours, go to `Device ID` on your Lattice's home screen.
 
-* **Enter Password:** Used to create a new [`Client` instance](https://gridplus.github.io/gridplus-sdk/api/classes/client.Client). The main purpose of this "password" (really more of a hashing salt) is to generate deterministic data for in the `Client` instance.
+* **Enter Password:** The main purpose of this "password" (really more of a hashing salt) is to generate a repeatable connection. As long as you use the same password every time when you connect a given Lattice (as is done if you save your login), you should have no issues.
 
-* **Enter Connection URL:** The routing domain in which to search for your target Lattice. By default, your Lattice is discoverable on the GridPlus routing domain (https://signing.gridpl.us). If you haven't changed that, you should just press enter to use the default value when prompted by the CLI. However, you can always change your routing network using [Lattice Connect](https://github.com/GridPlus/lattice-connect-v2).
+* **Enter Connection URL:** The routing domain in which to search for your target Lattice. By default, your Lattice is discoverable on the GridPlus routing domain. If you haven't changed that, you should use the default. You can always change your routing domain using [Lattice Connect](https://github.com/GridPlus/lattice-connect-v2).
 
-### Pairing with the Lattice
+### Pairing with your Lattice
 
-If the CLI is able to find your Lattice, the device will render a screen with a six digit pairing code, which is valid for 60 seconds. You will now be prompted to enter this pairing secret into the CLI. If you enter the correct secret, a pairing record will be created on the Lattice. As long as this record remains on the Lattice (the user can remove it at any time), you will be able to reconnect at any time without having to pair.
+If the CLI is able to discover your Lattice and does not find an existing connection, your Lattice will render a screen with a six digit pairing code, which is valid for 60 seconds. You will now be prompted to enter this pairing secret into the CLI. If you enter the correct secret, a pairing record will be created on the Lattice. As long as this record remains on the Lattice (the user can remove it at any time), you will be able to re-establish the same connection without having to re-pair.
 
-### Saving Login Info
+### Saving Connection
 
-At this point, you will be asked if you wish to save this login info for future use. If you do, you won't have to enter it later. If you wish to connect to a different Lattice at some later time, you may also choose to start up the CLI and *not* use the saved login data.
+At this point, you will be asked if you wish to save this connection for future use. If you do, you won't have to enter any of the discovery info again. If you wish to connect to a different Lattice at some later time, you may also choose to start up the CLI and *not* use the saved login data. Note that only one connection can be saved at a time.
 
-# Commands
+# 🖥️ Commands
 
 > NOTE: This is a subset of Lattice functionality. More commands may be added to the CLI at a later date. Pull requests are also welcome!
 
@@ -46,7 +54,7 @@ There are a series of commands you can use to interact with your Lattice.
 
 ## Export ETH2 Deposit Data
 
-If your Lattice is on firmware v0.17.0 or greater, you have access to your BLS keys and signatures. You can now use your Lattice to generate data necessary to start one or more validators. For more background information on the data being generated, see [this GridPlus resource](https://gridplus.github.io/gridplus-sdk/tutorials/ethDeposits).
+If your Lattice is on firmware v0.17.0 or greater, you have access to your BLS keys and signatures. You can use your Lattice to generate data necessary to start one or more validators. For more background information on the data being generated, see [this GridPlus resource](https://gridplus.github.io/gridplus-sdk/tutorials/ethDeposits).
 
 > **WARNING:** The Lattice can be used to export validator data, but **cannot** be used as a validator itself. For that, you will need to setup your own staking node, assuming you are doing solo staking. If you are solo staking and do not already have a staking machine, please stop here and get that setup. [Here](https://www.blocknative.com/blog/ethereum-validator-staking-guide) is a good place to start.
 
