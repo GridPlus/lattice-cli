@@ -1,25 +1,38 @@
 {
-  "name": "gridplus-cli",
-  "version": "0.0.1",
+  "name": "lattice-cli",
+  "version": "0.1.0",
   "description": "CLI for interacting with gridplus-sdk",
-  "main": "index.js",
+  "main": "./dist/lattice-cli.js",
+  "types": "./dist/lattice-cli.d.ts",
   "scripts": {
-    "test": "jest",
-    "build": "tsc",
-    "start": "ts-node ./src/index.ts"
+    "build": "tsc -p tsconfig.json",
+    "start": "ts-node ./src/lattice-cli.ts",
+    "release": "npm run build && npx pkg -c package.json dist/lattice-cli.js"
   },
   "keywords": [],
   "author": "Doug Lance",
   "license": "ISC",
   "dependencies": {
+    "@ethersproject/abi": "^5.7.0",
+    "@types/spinnies": "^0.5.0",
     "dotenv": "^16.0.0",
     "enquirer": "^2.3.6",
-    "gridplus-sdk": "^1.2.0",
+    "gridplus-sdk": "^2.4.1",
+    "lattice-eth2-utils": "^0.4.2",
+    "spinnies": "^0.5.1",
     "ts-node": "^10.7.0"
   },
   "devDependencies": {
     "@types/jest": "^27.4.1",
     "jest": "^27.5.1",
     "typescript": "^4.6.3"
+  },
+  "pkg": {
+    "targets": [
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-win-x64"
+    ],
+    "outputPath": "release"
   }
 }
