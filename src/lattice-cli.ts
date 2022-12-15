@@ -68,9 +68,21 @@ import {
       isPaired = await client.connect(creds.deviceId);
       closeSpinner(connectSpinner, "Found Lattice.");
     } catch (err) {
+      let msg = ''
+      if (err instanceof Error) {
+        if (err.message === 'Error code 401: Unauthorized') {
+          // Bespoke re-dressing of unhelpful error from Lattice Connect V2.
+          // It would be nice to get this fixed at some point..
+          // https://github.com/GridPlus/lattice-connect-v2/
+          //  blob/df8ab3e92e92fe610cf8675a0f86ddcea2e45b2c/connect/src/services/useSigning.ts#L80
+          msg = ': Cannot find Lattice with that ID on specified connect URL.'
+        } else if (err.message) {
+          msg = `: ${err.message}`
+        }
+      }
       closeSpinner(
         connectSpinner,
-        `Failed to connect to Lattice: ${err instanceof Error ? err.message : ''}`,
+        `Failed to connect to Lattice ${msg}`,
         false
       );
       continue;
