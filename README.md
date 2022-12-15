@@ -16,7 +16,7 @@ npm i && npm run release
 
 This will generate a set of binaries in `./releases`. Run the one you wish to use.
 
-# Contents
+## Contents
 
 * [Connecting to a Lattice](#connecting-to-a-lattice)
 * [Commands](#commands)
