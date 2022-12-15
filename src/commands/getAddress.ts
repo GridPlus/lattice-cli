@@ -3,7 +3,7 @@ import { DEFAULT_PATHS } from '../constants';
 import { promptGetPath, promptForSelect } from '../prompts';
 import { 
   clearPrintedLines,
-  finishSpinner, 
+  closeSpinner, 
   pathStrToInt, 
   printColor, 
   startNewSpinner,
@@ -27,12 +27,12 @@ export async function cmdGetAddresses(client: Client) {
   const spinner = startNewSpinner(`Fetching address at path ${pathStr}`);
   try {
     const addresses = await client.getAddresses({ startPath, n: 1 });
-    finishSpinner(
+    closeSpinner(
       spinner,
       `${addresses[0]}`
     );
   } catch (err) {
-    finishSpinner(
+    closeSpinner(
       spinner,
       `Failed to fetch address at path ${pathStr}.`,
       false

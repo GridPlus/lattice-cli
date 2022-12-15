@@ -23,8 +23,8 @@ import {
 } from '../prompts';
 import {
   clearPrintedLines, 
+  closeSpinner,
   isValidEth1Addr, 
-  finishSpinner,
   pathIntToStr, 
   pathStrToInt, 
   printColor,
@@ -32,7 +32,7 @@ import {
 } from '../utils';
 
 /**
- * Generate deposit data for one or more validators. This will
+ * Build deposit data for one or more validators. This will
  * ask some initial questions and then will generate deposit
  * data on an interactive loop, once for each desired validator.
  * 
@@ -106,7 +106,7 @@ export async function cmdGenDepositData(client: Client) {
     return;
   }
   
-  // 4. Generate deposit data in interactive loop
+  // 4. Build deposit data in interactive loop
   while (true) {
     let withdrawalKey = eth1Addr;
 
@@ -118,19 +118,19 @@ export async function cmdGenDepositData(client: Client) {
     try {
       const keystore = await getKeystore(client, depositPath);
       keystores.push(keystore);
-      finishSpinner(
+      closeSpinner(
         keystoreSpinner,
         `Exported encrypted keystore for validator #${depositPath[2]}.`
       );
     } catch (err) {
-      finishSpinner(
+      closeSpinner(
         keystoreSpinner,
         `Failed to export encrypted keystore for validator #${depositPath[2]}.`,
         false
       );
     }
 
-    // 4.2. Generate deposit data record
+    // 4.2. Build deposit data record
     // First determine the withdrawal credentials
     if (!withdrawalKey) {
       const withdrawalKeySpinner = startNewSpinner(
@@ -141,12 +141,12 @@ export async function cmdGenDepositData(client: Client) {
         // If no withdrawalKey was set, we will be using the defaulBLS withBIP39 draw.
         // Derived according to EIP2334.al key associated with a deposit path
         withdrawalKey = await getBlsWithdrawalKey(client, depositPath);
-        finishSpinner(
+        closeSpinner(
           withdrawalKeySpinner,
           `Fetched BLS withdrawal key for validator #${depositPath[2]}.`
         );
       } catch (err) {
-        finishSpinner(
+        closeSpinner(
           withdrawalKeySpinner,
           `Failed to fetch BLS withdrawal key for validator #${depositPath[2]}.`,
           false
@@ -167,12 +167,12 @@ export async function cmdGenDepositData(client: Client) {
         withdrawalKey
       );
       depositData.push(JSON.parse(record));
-      finishSpinner(
+      closeSpinner(
         depositDataSpinner,
         `Successfully built deposit data for validator #${depositPath[2]}.`
       );
     } catch (err) {
-      finishSpinner(
+      closeSpinner(
         depositDataSpinner,
         `Failed to build deposit data for validator #${depositPath[2]}.`,
         false
@@ -189,7 +189,7 @@ export async function cmdGenDepositData(client: Client) {
 
     // 4.3. Ask if user wants to do another one
     const shouldContinue = await promptForBool(
-      `Generate deposit data for next validator? (${depositPath[2] + 1})? `
+      `Build deposit data for next validator? (${depositPath[2] + 1})? `
     );
     if (!shouldContinue) {
       break;

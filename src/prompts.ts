@@ -55,7 +55,7 @@ export const promptForCommand = async (client: Client) => {
     limit: 10,
     initial: 0,
     choices: [
-      COMMANDS.GENERATE_DEPOSIT_DATA,
+      COMMANDS.EXPORT_DEPOSIT_DATA,
       COMMANDS.GET_ADDRESS,
       COMMANDS.GET_PUBLIC_KEY,
       COMMANDS.EXIT,
@@ -70,7 +70,7 @@ export const promptForCommand = async (client: Client) => {
       case COMMANDS.GET_PUBLIC_KEY:
         await cmdGetPubkeys(client);
         break;
-      case COMMANDS.GENERATE_DEPOSIT_DATA:
+      case COMMANDS.EXPORT_DEPOSIT_DATA:
         await cmdGenDepositData(client);
         break;
       case COMMANDS.EXIT:

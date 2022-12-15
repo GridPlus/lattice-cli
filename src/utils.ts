@@ -1,7 +1,5 @@
 import crypto from "crypto";
 import Spinnies from "spinnies";
-const cliProgress = require('cli-progress');
-let progressBar: any = null;
 let spinner: Spinnies;
 
 /**
@@ -57,9 +55,9 @@ export function startNewSpinner(text: string, color?: string): Spinnies {
 }
 
 /**
- * Finish an ASCII spinner
+ * Close an existing ASCII spinner
  */
-export function finishSpinner(spinner: Spinnies, text: string, success: boolean = true) {
+export function closeSpinner(spinner: Spinnies, text: string, success: boolean = true) {
   if (success) {
     spinner.succeed('spinner-1', { text, color: 'green' });
   } else {

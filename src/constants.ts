@@ -2,7 +2,7 @@ const COMMANDS = {
   EXIT: 'Exit',
   GET_ADDRESS: 'Get Address',
   GET_PUBLIC_KEY: 'Get Public Key',
-  GENERATE_DEPOSIT_DATA: 'Generate ETH2 Deposit Data',
+  EXPORT_DEPOSIT_DATA: 'Export ETH2 Deposit Data',
 };
 
 const DEFAULT_PATHS = {

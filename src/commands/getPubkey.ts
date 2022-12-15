@@ -6,7 +6,7 @@ import { DEFAULT_PATHS, PUBKEY_TYPES } from '../constants';
 import { promptGetPath, promptForSelect } from '../prompts';
 import { 
   clearPrintedLines,
-  finishSpinner, 
+  closeSpinner, 
   pathStrToInt,
   printColor, 
   startNewSpinner 
@@ -58,12 +58,12 @@ export async function cmdGetPubkeys(client: Client) {
   const spinner = startNewSpinner(`Fetching pubkey at path ${pathStr}`);
   try {
     const pubkeys = await client.getAddresses({ startPath, n: 1, flag });
-    finishSpinner(
+    closeSpinner(
       spinner,
       `${pubkeys[0].toString('hex')}`
     );
   } catch (err) {
-    finishSpinner(
+    closeSpinner(
       spinner,
       `Failed to fetch pubkey at path ${pathStr}.`,
       false
