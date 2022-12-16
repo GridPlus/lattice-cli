@@ -181,7 +181,7 @@ async function getPassword(useEnv: boolean): Promise<string> {
   if (!!process.env.LATTICE_PASSWORD && useEnv) {
     password = process.env.LATTICE_PASSWORD;
   } else {
-    password = await promptForString("Enter Lattice Password: ", "", true);
+    password = await promptForString("Enter Connection Password: ", "", true);
   }
   if (password.length < 6) {
     printColor("Password must be at least 6 characters.", "red");

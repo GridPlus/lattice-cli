@@ -34,7 +34,7 @@ If you don't have a saved connection between your Lattice and this CLI, you will
 
 * **Enter Device ID:** Needed to discover your Lattice. To find yours, go to `Device ID` on your Lattice's home screen.
 
-* **Enter Password:** The main purpose of this "password" (really more of a hashing salt) is to generate a repeatable connection. As long as you use the same password every time when you connect a given Lattice (as is done if you save your login), you should have no issues.
+* **Enter Connection Password:** The main purpose of this "password" (really more of a hashing salt) is to generate a repeatable connection. As long as you use the same password every time when you connect a given Lattice (as is done if you save your login), you should have no issues.
 
 * **Enter Connection URL:** The routing domain in which to search for your target Lattice. By default, your Lattice is discoverable on the GridPlus routing domain. If you haven't changed that, you should use the default. You can always change your routing domain using [Lattice Connect](https://github.com/GridPlus/lattice-connect-v2).
 
