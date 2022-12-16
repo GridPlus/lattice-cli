@@ -76,6 +76,8 @@ export async function cmdGenDepositData(client: Client) {
     eth1Addr = await promptForString(
       "Enter ETH1 withdrawal address: "
     );
+    // Convert to lowercase as is convention for withdrawal credentials
+    eth1Addr = eth1Addr.toLowerCase();
     if (!isValidEth1Addr(eth1Addr)) {
       printColor("Invalid ETH1 address.", "red");
       return;
