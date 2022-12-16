@@ -54,7 +54,7 @@ import {
  *    creating validators.
  */
 export async function cmdGenDepositData(client: Client) {
-  let depositPath, depositPathStr, eth1Addr, startingIdx;
+  let depositPath: number[], depositPathStr: string, eth1Addr: string = '', startingIdx: number;
   const keystores: string[] = [];
   const depositData: any[] = [];
   const exportOpts = [
@@ -62,13 +62,13 @@ export async function cmdGenDepositData(client: Client) {
     "Raw transaction calldata",
   ];
   const withdrawalOpts = [
-    "ETH1 Address (default)",
-    "BLS Key",
+    "ETH1 (default)",
+    "BLS",
   ];
 
   // 1. Get withdrawal credentials info
   const withdrawalType = await promptForSelect(
-    "Choose withdrawal key type: ",
+    "Choose withdrawal credential type: ",
     JSON.parse(JSON.stringify(withdrawalOpts)),
   );
   if (withdrawalType === withdrawalOpts[0]) {
@@ -76,6 +76,8 @@ export async function cmdGenDepositData(client: Client) {
     eth1Addr = await promptForString(
       "Enter ETH1 withdrawal address: "
     );
+    // Convert to lowercase as is convention for withdrawal credentials
+    eth1Addr = eth1Addr.toLowerCase();
     if (!isValidEth1Addr(eth1Addr)) {
       printColor("Invalid ETH1 address.", "red");
       return;
@@ -97,14 +99,7 @@ export async function cmdGenDepositData(client: Client) {
   // 2. Determine deposit amount. Note that this will be for ALL validators!
   const depositAmountGwei = await getDepositAmountGwei();
 
-  // 3. Determine what type of deposit data to export
-  const exportType = await promptForSelect(
-    "What type of deposit data do you want to export? ",
-    JSON.parse(JSON.stringify(exportOpts)),
-  );
-  const exportCalldata = exportType === exportOpts[1]; 
-
-  // 4. Get the starting validator index
+  // 3. Get the starting validator index
   try {
     startingIdx = await promptForNumber(
       'Please specify the starting validator index:',
@@ -121,10 +116,17 @@ export async function cmdGenDepositData(client: Client) {
     printColor("Failed to process input.", "red");
     return;
   }
+
+  // 4. Determine what type of deposit data to export
+  const exportType = await promptForSelect(
+    "What type of deposit data do you want to export? ",
+    JSON.parse(JSON.stringify(exportOpts)),
+  );
+  const exportCalldata = exportType === exportOpts[1]; 
   
   // 5. Build deposit data in interactive loop
   while (true) {
-    let withdrawalKey = eth1Addr;
+    let withdrawalKey: string;
 
     // 5.1. Get encrypted private key for depositor
     const keystoreSpinner = startNewSpinner(
@@ -139,16 +141,28 @@ export async function cmdGenDepositData(client: Client) {
         `Exported encrypted keystore for validator #${depositPath[2]}.`
       );
     } catch (err) {
-      closeSpinner(
-        keystoreSpinner,
-        `Failed to export encrypted keystore for validator #${depositPath[2]}.`,
-        false
-      );
+      let msg = `Failed to export encrypted keystore for validator #${depositPath[2]}.`;
+      if (err instanceof Error) {
+        if (err.message.includes("Disabled (Lattice)")) {
+          // The user needs to setup an encryption password on the Lattice before
+          // exporting any keystores.
+          msg = "You must set an encryption password on your Lattice before you can export any keystores.";
+        }
+      }
+      closeSpinner(keystoreSpinner, msg, false);
+      const shouldContinue = await promptForBool(`Try again? `);
+      if (!shouldContinue) {
+        break;
+      } else {
+        continue;
+      }
     }
 
     // 5.2. Build deposit data record
     // First determine the withdrawal credentials
-    if (!withdrawalKey) {
+    if (eth1Addr !== '') {
+      withdrawalKey = eth1Addr;
+    } else {
       const withdrawalKeySpinner = startNewSpinner(
         `Fetching BLS withdrawal key for validator #${depositPath[2]}.`, 
         "yellow"
@@ -166,7 +180,13 @@ export async function cmdGenDepositData(client: Client) {
           withdrawalKeySpinner,
           `Failed to fetch BLS withdrawal key for validator #${depositPath[2]}.`,
           false
-        );  
+        );
+        const shouldContinue = await promptForBool(`Try again? `);
+        if (!shouldContinue) {
+          break;
+        } else {
+          continue;
+        }
       }
     }
 
@@ -202,9 +222,7 @@ export async function cmdGenDepositData(client: Client) {
         `Failed to build deposit data for validator #${depositPath[2]}.`,
         false
       );
-      const shouldContinue = await promptForBool(
-        `Try again? `
-      );
+      const shouldContinue = await promptForBool(`Try again? `);
       if (!shouldContinue) {
         break;
       } else {
@@ -249,8 +267,10 @@ export async function cmdGenDepositData(client: Client) {
     mkdirSync(fDir);
   }
   for (let i = 0; i < depositData.length; i++) {
-    const fPath = fDir + `/validator-${i}-${depositData[i].pubkey}-${datetime}.json`;
-    writeFileSync(fPath, keystores[i]);
+    writeFileSync(
+      fDir + `/keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`, 
+      keystores[i]
+    );
   };
   const fName = exportCalldata ?
                 `deposit-calldata-${datetime}.json` :

@@ -34,7 +34,7 @@ If you don't have a saved connection between your Lattice and this CLI, you will
 
 * **Enter Device ID:** Needed to discover your Lattice. To find yours, go to `Device ID` on your Lattice's home screen.
 
-* **Enter Password:** The main purpose of this "password" (really more of a hashing salt) is to generate a repeatable connection. As long as you use the same password every time when you connect a given Lattice (as is done if you save your login), you should have no issues.
+* **Enter Connection Password:** The main purpose of this "password" (really more of a hashing salt) is to generate a repeatable connection. As long as you use the same password every time when you connect a given Lattice (as is done if you save your login), you should have no issues.
 
 * **Enter Connection URL:** The routing domain in which to search for your target Lattice. By default, your Lattice is discoverable on the GridPlus routing domain. If you haven't changed that, you should use the default. You can always change your routing domain using [Lattice Connect](https://github.com/GridPlus/lattice-connect-v2).
 
@@ -87,7 +87,13 @@ Per the deposit contract, there are a few constraints on the deposit amount:
   * This seems insane, so we've (somewhat arbitrarily) set the max to 64 ETH in this CLI. I'm not sure why you would ever want to set more than 32 ETH but if you can think of a good reason, feel free to open a pull request!
 * Deposit must be a multiple of 1 Gwei (i.e. multiple of 0.000000001 ETH)
 
-### Step 3: Selecting Export Type
+### Step 3: Setting a Starting Index
+
+> NOTE: You should probably start with the default `0` index if you are adding validators from a new wallet. Choosing a starting index lets you resume the process of adding more validators from the same wallet at some later point.
+
+After selecting your withdrawal key type, you will be asked for a **starting** validator index. Per [EIP2334](https://eips.ethereum.org/EIPS/eip-2334), the BIP39 path in question is `m/12381/3600/i/0/0` for the validator/depositor key.
+
+### Step 4: Selecting Export Type
 
 In order to make a deposit and start an ETH validator, you need to make an on-chain transaction on the *execution layer*. You will be calling the `deposit` function on the [deposit contract](https://etherscan.io/address/0x00000000219ab540356cbb839cbe05303d7705fa#code). The Ethereum Foundation built a web tool called the [Ethereum Launchpad](https://launchpad.ethereum.org) to improve the UX around signing deposit transactions. The data format expected by the Launchpad comes from the official [Staking Deposit CLI](https://github.com/ethereum/staking-deposit-cli). This data can also be generated using the Lattice CLI.
 
@@ -96,18 +102,11 @@ You will be presented with two options for data export type:
 1. **JSON file for Ethereum Launchpad (default)** - if you choose this option, the CLI will create a `deposit-data-{timestamp}.json` file containing an array of objects mapping to the set of validators you want to create. You can take this `.json` file and drop it directly into the [Launchpad](https://launchpade.ethereum.org).
 2. **Raw transaction calldata** - if you choose this option, the CLI will create a `deposit-calldata-{timestamp}.json` file which contains an array of objects, each of which has a pubkey (for reference) and the raw transaction calldata which should be included in a transaction to the deposit contract. This is a more advanced option, so care should be taken if you choose it. For example, your deposit transaction's `msg.value` *must* match the amount specified when creating the data.
 
-
-### Step 4: Setting a Starting Index
-
-> NOTE: You should probably start with the default `0` index if you are adding validators from a new wallet. Choosing a starting index lets you resume the process of adding more validators from the same wallet at some later point.
-
-After selecting your withdrawal key type, you will be asked for a **starting** validator index. Per [EIP2334](https://eips.ethereum.org/EIPS/eip-2334), the BIP39 path in question is `m/12381/3600/i/0/0` for the validator/depositor key.
-
 ### Step 5: Build Deposit Data
 
 Now that you have declared your options, the CLI will start generating data. For *each* validator index (starting with the first one):
 
-1. Export the encrypted deposit private key. This will need to be imported into your consensus layer client prior to validator activation.
+1. Export the encrypted deposit private key. This will need to be imported into your consensus layer client prior to validator activation. *Note that only `pbkdf2` encryption is supported at this time (not `scrypt`).*
 2. Request a BLS signature from your Lattice to build deposit data. You are signing the root of the [`DepositData`](https://github.com/ethereum/consensus-specs/blob/dev/specs/phase0/beacon-chain.md#depositdata) message object.
 3. Ask if you'd like to repeat the process (steps 1 & 2) for the next sequential validator.
 
@@ -116,7 +115,7 @@ Now that you have declared your options, the CLI will start generating data. For
 Once you decline to generate data for the next validator, the process will ask where you want to save the exported files. Once you choose the location, the CLI will output several files into the specified directory:
 
 * `{outDir}/deposit-X-{timestamp}.json` (either `-data-` or `-calldata`, depending on selected export type)
-* For each validator index `i`: `{outDir}/validator-{i}-{pubkey}-{timestamp}.json`
+* For each validator index `i`: `{outDir}/keystore-m_12381_3600_{i}_0_0-{timestamp}.json`
 
 ## Get Public Key
 
