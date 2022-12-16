@@ -54,7 +54,7 @@ import {
  *    creating validators.
  */
 export async function cmdGenDepositData(client: Client) {
-  let depositPath, depositPathStr, eth1Addr, startingIdx;
+  let depositPath: number[], depositPathStr: string, eth1Addr: string = '', startingIdx: number;
   const keystores: string[] = [];
   const depositData: any[] = [];
   const exportOpts = [
@@ -62,13 +62,13 @@ export async function cmdGenDepositData(client: Client) {
     "Raw transaction calldata",
   ];
   const withdrawalOpts = [
-    "ETH1 Address (default)",
-    "BLS Key",
+    "ETH1 (default)",
+    "BLS",
   ];
 
   // 1. Get withdrawal credentials info
   const withdrawalType = await promptForSelect(
-    "Choose withdrawal key type: ",
+    "Choose withdrawal credential type: ",
     JSON.parse(JSON.stringify(withdrawalOpts)),
   );
   if (withdrawalType === withdrawalOpts[0]) {
@@ -124,7 +124,7 @@ export async function cmdGenDepositData(client: Client) {
   
   // 5. Build deposit data in interactive loop
   while (true) {
-    let withdrawalKey = eth1Addr;
+    let withdrawalKey: string;
 
     // 5.1. Get encrypted private key for depositor
     const keystoreSpinner = startNewSpinner(
@@ -139,16 +139,28 @@ export async function cmdGenDepositData(client: Client) {
         `Exported encrypted keystore for validator #${depositPath[2]}.`
       );
     } catch (err) {
-      closeSpinner(
-        keystoreSpinner,
-        `Failed to export encrypted keystore for validator #${depositPath[2]}.`,
-        false
-      );
+      let msg = `Failed to export encrypted keystore for validator #${depositPath[2]}.`;
+      if (err instanceof Error) {
+        if (err.message.includes("Disabled (Lattice)")) {
+          // The user needs to setup an encryption password on the Lattice before
+          // exporting any keystores.
+          msg = "You must set an encryption password on your Lattice before you can export any keystores.";
+        }
+      }
+      closeSpinner(keystoreSpinner, msg, false);
+      const shouldContinue = await promptForBool(`Try again? `);
+      if (!shouldContinue) {
+        break;
+      } else {
+        continue;
+      }
     }
 
     // 5.2. Build deposit data record
     // First determine the withdrawal credentials
-    if (!withdrawalKey) {
+    if (eth1Addr !== '') {
+      withdrawalKey = eth1Addr;
+    } else {
       const withdrawalKeySpinner = startNewSpinner(
         `Fetching BLS withdrawal key for validator #${depositPath[2]}.`, 
         "yellow"
@@ -166,7 +178,13 @@ export async function cmdGenDepositData(client: Client) {
           withdrawalKeySpinner,
           `Failed to fetch BLS withdrawal key for validator #${depositPath[2]}.`,
           false
-        );  
+        );
+        const shouldContinue = await promptForBool(`Try again? `);
+        if (!shouldContinue) {
+          break;
+        } else {
+          continue;
+        }
       }
     }
 
@@ -202,9 +220,7 @@ export async function cmdGenDepositData(client: Client) {
         `Failed to build deposit data for validator #${depositPath[2]}.`,
         false
       );
-      const shouldContinue = await promptForBool(
-        `Try again? `
-      );
+      const shouldContinue = await promptForBool(`Try again? `);
       if (!shouldContinue) {
         break;
       } else {
