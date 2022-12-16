@@ -99,14 +99,7 @@ export async function cmdGenDepositData(client: Client) {
   // 2. Determine deposit amount. Note that this will be for ALL validators!
   const depositAmountGwei = await getDepositAmountGwei();
 
-  // 3. Determine what type of deposit data to export
-  const exportType = await promptForSelect(
-    "What type of deposit data do you want to export? ",
-    JSON.parse(JSON.stringify(exportOpts)),
-  );
-  const exportCalldata = exportType === exportOpts[1]; 
-
-  // 4. Get the starting validator index
+  // 3. Get the starting validator index
   try {
     startingIdx = await promptForNumber(
       'Please specify the starting validator index:',
@@ -123,6 +116,13 @@ export async function cmdGenDepositData(client: Client) {
     printColor("Failed to process input.", "red");
     return;
   }
+
+  // 4. Determine what type of deposit data to export
+  const exportType = await promptForSelect(
+    "What type of deposit data do you want to export? ",
+    JSON.parse(JSON.stringify(exportOpts)),
+  );
+  const exportCalldata = exportType === exportOpts[1]; 
   
   // 5. Build deposit data in interactive loop
   while (true) {
@@ -267,8 +267,10 @@ export async function cmdGenDepositData(client: Client) {
     mkdirSync(fDir);
   }
   for (let i = 0; i < depositData.length; i++) {
-    const fPath = fDir + `/validator-${i}-${depositData[i].pubkey}-${datetime}.json`;
-    writeFileSync(fPath, keystores[i]);
+    writeFileSync(
+      fDir + `/keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`, 
+      keystores[i]
+    );
   };
   const fName = exportCalldata ?
                 `deposit-calldata-${datetime}.json` :
