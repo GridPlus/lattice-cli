@@ -19,7 +19,7 @@
     "dotenv": "^16.0.0",
     "enquirer": "^2.3.6",
     "gridplus-sdk": "^2.4.1",
-    "lattice-eth2-utils": "^0.4.2",
+    "lattice-eth2-utils": "^0.4.3",
     "spinnies": "^0.5.1",
     "ts-node": "^10.7.0"
   },
