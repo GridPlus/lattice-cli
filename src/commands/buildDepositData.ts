@@ -1,5 +1,6 @@
 import { AbiCoder } from '@ethersproject/abi';
 import { 
+  chmodSync,
   existsSync, 
   mkdirSync, 
   writeFileSync, 
@@ -233,10 +234,11 @@ export async function cmdGenDepositData(client: Client) {
     mkdirSync(fDir);
   }
   for (let i = 0; i < depositData.length; i++) {
-    writeFileSync(
-      fDir + `/keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`, 
-      keystores[i]
-    );
+    const fPath = fDir + `/keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`;
+    writeFileSync(fPath, keystores[i]);
+    // These are JSON files so they don't really need to be executable,
+    // but this matches the permissions from the official Ethereum Deposit CLI.
+    chmodSync(fPath, "710");
   };
   const fName = exportCalldata ?
                 `deposit-calldata-${datetime}.json` :
