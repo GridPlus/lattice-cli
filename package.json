@@ -1,6 +1,6 @@
 {
   "name": "lattice-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for interacting with gridplus-sdk",
   "main": "./dist/lattice-cli.js",
   "types": "./dist/lattice-cli.d.ts",
@@ -8,7 +8,7 @@
     "clean": "rm -rf dist && rm -rf release", 
     "build": "tsc -p tsconfig.json && npx pkg -c package.json dist/lattice-cli.js",
     "start": "ts-node ./src/lattice-cli.ts",
-    "release": "npm run clean && npm run build"
+    "release": "npm run clean && npm run build && chmod 755 release/*"
   },
   "keywords": [],
   "author": "Doug Lance",
@@ -19,7 +19,7 @@
     "dotenv": "^16.0.0",
     "enquirer": "^2.3.6",
     "gridplus-sdk": "^2.4.1",
-    "lattice-eth2-utils": "^0.4.2",
+    "lattice-eth2-utils": "^0.4.3",
     "spinnies": "^0.5.1",
     "ts-node": "^10.7.0"
   },

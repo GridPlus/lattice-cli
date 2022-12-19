@@ -1,5 +1,6 @@
 import { AbiCoder } from '@ethersproject/abi';
 import { 
+  chmodSync,
   existsSync, 
   mkdirSync, 
   writeFileSync, 
@@ -126,8 +127,6 @@ export async function cmdGenDepositData(client: Client) {
   
   // 5. Build deposit data in interactive loop
   while (true) {
-    let withdrawalKey: string;
-
     // 5.1. Get encrypted private key for depositor
     const keystoreSpinner = startNewSpinner(
       `Exporting encrypted keystore for validator #${depositPath[2]}. This will take about 30 seconds.`, 
@@ -158,38 +157,6 @@ export async function cmdGenDepositData(client: Client) {
       }
     }
 
-    // 5.2. Build deposit data record
-    // First determine the withdrawal credentials
-    if (eth1Addr !== '') {
-      withdrawalKey = eth1Addr;
-    } else {
-      const withdrawalKeySpinner = startNewSpinner(
-        `Fetching BLS withdrawal key for validator #${depositPath[2]}.`, 
-        "yellow"
-      );
-      try {
-        // If no withdrawalKey was set, we will be using the defaulBLS withBIP39 draw.
-        // Derived according to EIP2334.al key associated with a deposit path
-        withdrawalKey = await getBlsWithdrawalKey(client, depositPath);
-        closeSpinner(
-          withdrawalKeySpinner,
-          `Fetched BLS withdrawal key for validator #${depositPath[2]}.`
-        );
-      } catch (err) {
-        closeSpinner(
-          withdrawalKeySpinner,
-          `Failed to fetch BLS withdrawal key for validator #${depositPath[2]}.`,
-          false
-        );
-        const shouldContinue = await promptForBool(`Try again? `);
-        if (!shouldContinue) {
-          break;
-        } else {
-          continue;
-        }
-      }
-    }
-
     // Now we can generate the deposit data
     const depositDataSpinner = startNewSpinner(
       `Waiting for signature from validator #${depositPath[2]}.`,
@@ -198,7 +165,7 @@ export async function cmdGenDepositData(client: Client) {
     try {
       const opts = {
         ...ETH2Constants.NETWORKS.MAINNET_GENESIS, // TODO: Make this configurable
-        withdrawalKey,
+        withdrawTo: eth1Addr !== '' ? eth1Addr : undefined,
         amountGwei: depositAmountGwei,
       };
       if (exportCalldata) {
@@ -267,10 +234,11 @@ export async function cmdGenDepositData(client: Client) {
     mkdirSync(fDir);
   }
   for (let i = 0; i < depositData.length; i++) {
-    writeFileSync(
-      fDir + `/keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`, 
-      keystores[i]
-    );
+    const fPath = fDir + `/keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`;
+    writeFileSync(fPath, keystores[i]);
+    // These are JSON files so they don't really need to be executable,
+    // but this matches the permissions from the official Ethereum Deposit CLI.
+    chmodSync(fPath, "710");
   };
   const fName = exportCalldata ?
                 `deposit-calldata-${datetime}.json` :
@@ -311,8 +279,12 @@ async function getKeystore(client: Client, depositPath: number[]): Promise<strin
  */
 function getPubkeyFromCalldata(calldata: string): string {
   const coder = new AbiCoder();
-  const decoded = coder.decode(ETH2Constants.ABIS.DEPOSIT, calldata);
-  if (decoded[0].length / 2 !== 48) {
+  // Need to remove the function selector (first 4 bytes) and 0x prefix
+  const slicedCalldata = calldata.slice(10);
+  const decoded = coder.decode(ETH2Constants.ABIS.DEPOSIT, '0x' + slicedCalldata);
+  // Make sure the first argument is a BLS pubkey. Note that ethers will return
+  // 0x-prefixed hex strings.
+  if ((decoded[0].length - 2) / 2 !== 48) {
     throw new Error("Invalid pubkey length encoded into message. Aborting.");
   }
   return decoded[0];
