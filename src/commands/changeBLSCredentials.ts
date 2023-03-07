@@ -4,7 +4,7 @@ import {
   Constants as SDKConstants,
 } from 'gridplus-sdk';
 import { 
-  BLSToExecutionChange, 
+  // BLSToExecutionChange, 
   Constants as ETH2Constants 
 } from 'lattice-eth2-utils';
 import {
@@ -13,9 +13,11 @@ import {
   promptForString,
 } from '../prompts';
 import {
+  closeSpinner,
   isValidEth1Addr,
   pathStrToInt,
   printColor,
+  startNewSpinner,
 } from '../utils';
 
 /**
@@ -28,15 +30,17 @@ import {
  */
 export async function cmdChangeBLSCredentials(client: Client) {
   const shouldContinue = await promptForBool(
-    "This method will change the withdrawal credentials for your validator(s). This can " +
-    "only be done once per validator, so please use this tool carefully!\n\n" +
-    "Do you currently have BLS (type 0) withdrawal credentials for the validator(s) you wish to change? ",
+    "This method will change the withdrawal credentials for your validator(s).\n" +
+    "This can only be done once per validator, so please use this tool carefully!\n" +
+    "Do you currently have BLS (type 0) withdrawal credentials for the validator(s) " +
+    "you wish to change? ",
     true);
   if (!shouldContinue) {
     printColor("Only BLS (type 0) withdrawal credentials can be changed. Exiting.", "yellow");
     return;
   }
-  const startingIdx = await promptForNumber(
+  console.log('');
+  const startIdx = await promptForNumber(
     "What is the starting derivation index of the validator(s) you wish to change? ",
     0,
   );
@@ -55,67 +59,116 @@ export async function cmdChangeBLSCredentials(client: Client) {
   }
   
   // Track state variables
-  let count = 0;
-  let signedMsgs = [];
+  let signedMsgs: string[] = [];
+  let validatorIndices: number[] = [];
 
   // Loop through each validator and generate a signed message
   while (true) {
-    let withdrawalPathStr = getDefaultBLSWithdrawalPathStr(startIdx + count);
-    let validatorPathStr = getDefaultBLSValidatorPathStr(startIdx + count);
+    printColor(
+      `\nGenerating signed message for validator #${startIdx + signedMsgs.length}...`, 
+      "yellow"
+    );
+
+    // First determine the derivation paths. If the default options were used, we can
+    // generate the paths using the derivation index alone.
+    let withdrawalPathStr = getDefaultBLSWithdrawalPathStr(startIdx + signedMsgs.length);
+    let validatorPathStr = getDefaultBLSValidatorPathStr(startIdx + signedMsgs.length);
     if (!useDefaultPaths) {
       withdrawalPathStr = await promptForString(
-        `What derivation path was used for validator #${startIdx + count}'s withdrawal credentials? `,
+        `What derivation path was used for validator ` +
+        `#${startIdx + signedMsgs.length}'s withdrawal credentials? `,
         withdrawalPathStr
       );
       validatorPathStr = await promptForString(
-        `What derivation path was used to generate validator #${startIdx + count}'s deposit data? `,
+        `What derivation path was used to generate validator ` +
+        `#${startIdx + signedMsgs.length}'s deposit data? `,
         validatorPathStr
       );
     }
-    const validatorPub = await getBLSPubkey(client, pathStrToInt(validatorPathStr));
+    
+    // Ask the device for validator and withdrawal keys
+    const keyExportSpinner = startNewSpinner('Fetching keys from your device...', 'yellow');
+    let validatorPub: string, withdrawalPub: string;
+    try {
+      validatorPub = await getBLSPubkey(client, pathStrToInt(validatorPathStr));
+      withdrawalPub = await getBLSPubkey(client, pathStrToInt(withdrawalPathStr));  
+      closeSpinner(keyExportSpinner, 'Fetched keys');
+    } catch (err) {
+      closeSpinner(keyExportSpinner, 'Error fetching keys from your debvice', false);
+      break;
+    }
+    
+    // Get the *network* index of the validator. It's helpful to use beaconcha.in if
+    // the user doesn't have this on hand.
+    console.log(
+      "\nEach validator has a network index. " +
+      "You can find this number in the label 'Validator ######' on the following page:"
+    );
+    console.log(`https://beaconcha.in/validator/${validatorPub}`);
     const validatorIdx = await promptForNumber(
-      "Please visit the following link, confirm the validator belongs to you, and enter the " +
-      "numerical validator index.\n" +
-      `https://beaconcha.in/validator/${validatorPub}\n`,
+      "What is the network index of your validator? ",
       0
     );
     
-    const withdrawalPub = await getBLSPubkey(client, pathStrToInt(withdrawalPathStr));
+    // Print the data that is being changed prior to final authorization
     const blsCreds = getBLSWithdrawalCredentials(withdrawalPub);
-    const confirmChange = await promptForBool(
-      `Changing credentials for validator #${validatorIdx} (${validatorPub}):\n` +
-      `Old withdrawal address: ${withdrawalPub}\n` +
-      `Old withdrawal credentials: 0x${blsCreds}\n` +
-      `New withdrawal address: ${eth1Addr}\n\n` +
-      `Do you wish to make this change?`
-      true
+    console.log(
+      `\nConfirm credential change for validator #${startIdx + signedMsgs.length}:\n` +
+      `- Network index: ${validatorIdx}\n` +
+      `- Validator pubkey: ${validatorPub}\n` +
+      `- Old BLS withdrawal address: ${withdrawalPub}\n` +
+      `- Old withdrawal credentials: 0x${blsCreds}\n` +
+      `- New ETH1 withdrawal address: ${eth1Addr}`
     );
+    const confirmChange = await promptForBool(`Do you wish to make this change?`, true);
     if (!confirmChange) {
+      // If the user does not want to make this change, let's just exit here to
+      // avoid any unneeded complexity.
       break;
     }
 
-    const signedMsg = await BLSToExecutionChange.generateObject(
-      globals.client,
-      pathStrToInt(withdrawalPathStr),
-      { eth1Addr, validatorIdx }
-    );
-    signedMsgs.push(signedMsg);
-    count++;
+    // Get the signature from the device
+    const sigSpinner = startNewSpinner('Waiting for signature from your device...', 'yellow');
+    try {
+      /*
+      const signedMsg = await BLSToExecutionChange.generateObject(
+        globals.client,
+        pathStrToInt(withdrawalPathStr),
+        { eth1Addr, validatorIdx }
+      );
+      // Update state variables
+      signedMsgs.push(signedMsg);
+      */
+      validatorIndices.push(validatorIdx);
+      closeSpinner(sigSpinner, 'Got signature');
+    } catch (err) {
+      closeSpinner(sigSpinner, 'Error getting signature from your device', false);
+      // As before, exit early to avoid complexity. The user can always restart this process.
+      break;
+    };
 
+    // Ask if the user wants to continue changing credentials
     const nextOne = await promptForBool(
-      `Do you want to change credentials for the next validator (derivation index #${startIdx + count})? `,
+      `Do you want to change credentials for the next validator ` +
+      `(derivation index #${startIdx + signedMsgs.length})? `,
       true
     );
     if (!nextOne) {
-      printColor(
-        `\n\n` +
-        `=======================\n` +
-        `Please send the following message to your consensus client or credential change service:\n` +
-        `${JSON.stringify(signedMsgs)}\n` +
-        `=======================\n` +
-      );
-      return;
+      break;
     }
+  }
+
+  if (signedMsgs.length > 0) {
+    printColor(
+      `\n\n` +
+      `=======================\n` +
+      `Generated credential change data for ${signedMsgs.length} validators ` +
+      `(${validatorIndices.join(', ')})\nPlease send the following message to ` +
+      `your consensus client or credential change service:\n` +
+      `${JSON.stringify(signedMsgs)}\n` +
+      `=======================\n`,
+      'green'
+    );
   }
 }
 
@@ -148,7 +201,7 @@ async function getBLSPubkey(client: Client, path: number[]): Promise<string> {
   const pubkeys = await client.getAddresses({
     // BLS withdrawal key path, by standard, is one derivation index
     // shorter than the deposit path, but with the same path otherwise.
-    startPath: path
+    startPath: path,
     n: 1,
     flag: SDKConstants.GET_ADDR_FLAGS.BLS12_381_G1_PUB,
   });
@@ -159,7 +212,7 @@ async function getBLSPubkey(client: Client, path: number[]): Promise<string> {
  * Return the original 0x00 type BLS withdrawal credentials given a path.
  * @return {string} The withdrawal credentials as a hex string (no 0x prefix).
  */
-function getBLSWithdrawalCredentials(blsWithdrawalPub: string): Promise<string>{
+function getBLSWithdrawalCredentials(blsWithdrawalPub: string): string{
   const creds = Buffer.alloc(32);
   creds[0] = 0;
   Buffer.from(

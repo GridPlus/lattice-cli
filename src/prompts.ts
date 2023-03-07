@@ -61,6 +61,7 @@ export const promptForCommand = async (client: Client) => {
     initial: 0,
     choices: [
       COMMANDS.EXPORT_DEPOSIT_DATA,
+      COMMANDS.CHANGE_BLS_WITHDRAWAL_CREDS,
       COMMANDS.GET_ADDRESS,
       COMMANDS.GET_PUBLIC_KEY,
       COMMANDS.EXIT,
