@@ -1,10 +1,11 @@
+import { writeFileSync } from 'fs';
 import { sha256 } from '@noble/hashes/sha256';
 import {
   Client,
   Constants as SDKConstants,
 } from 'gridplus-sdk';
 import { 
-  // BLSToExecutionChange, 
+  BLSToExecutionChange, 
   Constants as ETH2Constants 
 } from 'lattice-eth2-utils';
 import {
@@ -130,15 +131,13 @@ export async function cmdChangeBLSCredentials(client: Client) {
     // Get the signature from the device
     const sigSpinner = startNewSpinner('Waiting for signature from your device...', 'yellow');
     try {
-      /*
       const signedMsg = await BLSToExecutionChange.generateObject(
-        globals.client,
+        client,
         pathStrToInt(withdrawalPathStr),
         { eth1Addr, validatorIdx }
       );
       // Update state variables
       signedMsgs.push(signedMsg);
-      */
       validatorIndices.push(validatorIdx);
       closeSpinner(sigSpinner, 'Got signature');
     } catch (err) {
@@ -150,7 +149,7 @@ export async function cmdChangeBLSCredentials(client: Client) {
     // Ask if the user wants to continue changing credentials
     const nextOne = await promptForBool(
       `Do you want to change credentials for the next validator ` +
-      `(derivation index #${startIdx + signedMsgs.length})? `,
+      `(#${startIdx + signedMsgs.length})? `,
       true
     );
     if (!nextOne) {
@@ -159,14 +158,23 @@ export async function cmdChangeBLSCredentials(client: Client) {
   }
 
   if (signedMsgs.length > 0) {
+    // Write the file
+    const fName = `bls_to_execution_change-${Date.now()}.json`;
+    writeFileSync(fName, JSON.stringify(signedMsgs));
+    // Tell the user how to use it
     printColor(
       `\n\n` +
       `=======================\n` +
       `Generated credential change data for ${signedMsgs.length} validators ` +
-      `(${validatorIndices.join(', ')})\nPlease send the following message to ` +
-      `your consensus client or credential change service:\n` +
-      `${JSON.stringify(signedMsgs)}\n` +
-      `=======================\n`,
+      `(${validatorIndices.join(', ')})\n` +
+      `Wrote to file: ${fName}\n` +
+      `=======================\n` +
+      `Please move this file to the machine running your consensus client ` +
+      `and run the following command:\n` +
+      `\n-----------------------\n` +
+      `curl -d @${fName} -H "Content-Type: application/json" -X POST 127.0.0.1:4000/eth/v1/beacon/pool/bls_to_execution_changes` +
+      `\n-----------------------\n\n`,
+      `For more details, please see this guide: https://notes.ethereum.org/@launchpad/withdrawals-guide`
       'green'
     );
   }
