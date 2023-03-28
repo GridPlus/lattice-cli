@@ -2,7 +2,12 @@
 import { AutoComplete, NumberPrompt, Toggle, prompt } from "enquirer";
 import { Client } from "gridplus-sdk";
 import { COMMANDS, PUBKEY_TYPES } from './constants';
-import { cmdGenDepositData, cmdGetAddresses, cmdGetPubkeys } from "./commands";
+import { 
+  cmdChangeBLSCredentials,
+  cmdGenDepositData, 
+  cmdGetAddresses, 
+  cmdGetPubkeys 
+} from "./commands";
 import { clearPrintedLines } from "./utils";
 
 export const promptForBool = async (message: string, defaultTrue=true) => {
@@ -56,6 +61,7 @@ export const promptForCommand = async (client: Client) => {
     initial: 0,
     choices: [
       COMMANDS.EXPORT_DEPOSIT_DATA,
+      COMMANDS.CHANGE_BLS_WITHDRAWAL_CREDS,
       COMMANDS.GET_ADDRESS,
       COMMANDS.GET_PUBLIC_KEY,
       COMMANDS.EXIT,
@@ -72,6 +78,9 @@ export const promptForCommand = async (client: Client) => {
         break;
       case COMMANDS.EXPORT_DEPOSIT_DATA:
         await cmdGenDepositData(client);
+        break;
+      case COMMANDS.CHANGE_BLS_WITHDRAWAL_CREDS:
+        await cmdChangeBLSCredentials(client);
         break;
       case COMMANDS.EXIT:
         process.exit(0);

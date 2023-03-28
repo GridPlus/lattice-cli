@@ -3,6 +3,7 @@ release
 
 # Default data output dirs
 deposit-data*
+bls-to-execution-change*
 
 # Logs
 logs

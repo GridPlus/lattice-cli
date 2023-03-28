@@ -1,11 +1,5 @@
 import { AbiCoder } from '@ethersproject/abi';
 import { 
-  chmodSync,
-  existsSync, 
-  mkdirSync, 
-  writeFileSync, 
-} from 'fs';
-import { 
   Client, 
   Constants as SDKConstants 
 } from "gridplus-sdk";
@@ -32,6 +26,7 @@ import {
   pathIntToStr, 
   pathStrToInt, 
   printColor,
+  saveFile,
   startNewSpinner
 } from '../utils';
 
@@ -230,20 +225,21 @@ export async function cmdGenDepositData(client: Client) {
     "Where do you wish to save the deposit data files? ",
     "./deposit-data"
   );
-  if (!existsSync(fDir)) {
-    mkdirSync(fDir);
-  }
   for (let i = 0; i < depositData.length; i++) {
-    const fPath = fDir + `/keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`;
-    writeFileSync(fPath, keystores[i]);
-    // These are JSON files so they don't really need to be executable,
-    // but this matches the permissions from the official Ethereum Deposit CLI.
-    chmodSync(fPath, "710");
+    saveFile(
+      fDir, 
+      `keystore-m_12381_3600_${startingIdx + i}_0_0-${datetime}.json`,
+      keystores[i], 
+      // NOTE: These are JSON files so they don't really need to be executable,
+      // but this matches the permissions from the official Ethereum Deposit CLI.
+      "710"
+    );
   };
-  const fName = exportCalldata ?
-                `deposit-calldata-${datetime}.json` :
-                `deposit-data-${datetime}.json`;
-  writeFileSync(fDir + '/' + fName, JSON.stringify(depositData));
+  saveFile(
+    fDir, 
+    exportCalldata ? `deposit-calldata-${datetime}.json` : `deposit-data-${datetime}.json`,
+    JSON.stringify(depositData)
+  );
   printColor(`Validator deposit data files saved to ${fDir}`, "green");
 }
 

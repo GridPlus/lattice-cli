@@ -1,8 +1,9 @@
 const COMMANDS = {
+  CHANGE_BLS_WITHDRAWAL_CREDS: 'Change Validator Withdrawal Credentials',
   EXIT: 'Exit',
+  EXPORT_DEPOSIT_DATA: 'Export Validator Deposit Data',
   GET_ADDRESS: 'Get Address',
   GET_PUBLIC_KEY: 'Get Public Key',
-  EXPORT_DEPOSIT_DATA: 'Export ETH2 Deposit Data',
 };
 
 const DEFAULT_PATHS = {
@@ -49,6 +50,7 @@ Once connected to your device, you can interact with its active wallet to:\n\
 - Request formatted (Ethereum or Bitcoin) addresses\n\
 - Request public keys\n\
 - Generate validator deposit data\n\
+- Change validator withdrawal credentials\n\
 `
 const WARNING_MSG =
 `\

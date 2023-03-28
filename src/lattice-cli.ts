@@ -54,8 +54,6 @@ import {
       continue;
     } else if (creds.password.length < 6) {
       printColor("Password must be at least 6 characters.", "red");
-    } else if (creds.url.indexOf("https://") < 0) {
-      printColor("URL must start with 'https://'.", "red");
     }
 
     // Instantiate the SDK client
@@ -196,10 +194,6 @@ async function getUrl(useEnv: boolean): Promise<string> {
     url = process.env.LATTICE_CONNECT_URL;
   } else {
     url = await promptForString("Enter Connection URL: ", DEFAULT_URL);
-  }
-  if (url.indexOf("https://") !== 0) {
-    printColor("URL must start with 'https://'", "red");
-    return await getUrl(useEnv);
   }
   return url;
 }
