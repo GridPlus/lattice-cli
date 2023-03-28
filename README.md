@@ -126,7 +126,7 @@ Once you decline to generate data for the next validator, the process will ask w
 * `{outDir}/deposit-X-{timestamp}.json` (either `-data-` or `-calldata`, depending on selected export type)
 * For each validator index `i`: `{outDir}/keystore-m_12381_3600_{i}_0_0-{timestamp}.json`
 
-## ↪️ Change Withdrawal Credentials
+## <a id="change-withdrawal-credentials">↪️ Change Withdrawal Credentials</a>
 
 In order to withdraw from an ETH2 validator, the withdrawal credentials must map to an ETH1 address (i.e. `keccak(pubkey)[:20]`). Originally, only BLS addresses (technically these are G1 public keys on the bls12-381 curve) were supported for withdrawal credentials -- this is a "type `0x00`" credential. At some point this changed to allow ETH1 addresses in the credentials (type `0x01`). If you have a legacy `0x00` type credential, for one or more validators, you will need to switch over to the `0x01` type before you can start withdrawing funds (even if you are not exiting). This can be done with the change credential command: `Change Validator Withdrawal Credentials`
 
