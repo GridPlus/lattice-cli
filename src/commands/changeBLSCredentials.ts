@@ -1,4 +1,3 @@
-import { writeFileSync } from 'fs';
 import { sha256 } from '@noble/hashes/sha256';
 import {
   Client,
@@ -18,6 +17,7 @@ import {
   isValidEth1Addr,
   pathStrToInt,
   printColor,
+  saveFile,
   startNewSpinner,
 } from '../utils';
 
@@ -161,23 +161,28 @@ export async function cmdChangeBLSCredentials(client: Client) {
   }
 
   if (signedMsgs.length > 0) {
+    const fDir = await promptForString(
+      "Where do you wish to save the deposit data files? ",
+      "./bls-to-execution-change"
+    );
     // Write the file
     const fName = `bls_to_execution_change-${Date.now()}.json`;
-    writeFileSync(fName, JSON.stringify(signedMsgs));
+    saveFile(
+      fDir,
+      fName,
+      JSON.stringify(signedMsgs),
+      // NOTE: These are JSON files so they don't really need to be executable,
+      // but this matches the permissions from the official Ethereum Deposit CLI.
+      "710"
+    )
     // Tell the user how to use it
     printColor(
       `\n\n` +
       `=======================\n` +
       `Generated credential change data for ${signedMsgs.length} validators ` +
       `(${validatorIndices.join(', ')})\n` +
-      `Wrote to file: ${fName}\n` +
-      `=======================\n` +
-      `Please move this file to the machine running your consensus client ` +
-      `and run the following command:\n` +
-      `\n-----------------------\n` +
-      `curl -d @${fName} -H "Content-Type: application/json" -X POST 127.0.0.1:4000/eth/v1/beacon/pool/bls_to_execution_changes` +
-      `\n-----------------------\n\n` +
-      `For more details, please see this guide: https://notes.ethereum.org/@launchpad/withdrawals-guide`,
+      `Wrote to file: ${fDir + '/' + fName}\n` +
+      `=======================\n`,
       'green'
     );
   }

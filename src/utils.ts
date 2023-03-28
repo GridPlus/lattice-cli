@@ -1,4 +1,10 @@
 import crypto from "crypto";
+import { 
+  chmodSync,
+  existsSync, 
+  mkdirSync, 
+  writeFileSync, 
+} from 'fs';
 import Spinnies from "spinnies";
 let spinner: Spinnies;
 
@@ -124,4 +130,19 @@ export function getDecimalPlaces(num: number): number {
   const str = num.toString();
   const decimalIndex = str.indexOf('.');
   return decimalIndex === -1 ? 0 : str.length - decimalIndex - 1;
+}
+
+/**
+ * Save a file to a directory with optional permissions.
+ * Create the directory if it doesn't exist.
+ */
+export function saveFile(fDir: string, fName: string, data: string, perm?: string) {
+  if (!existsSync(fDir)) {
+    mkdirSync(fDir);
+  }
+  const path = fDir + '/' + fName;
+  writeFileSync(path, data);
+  if (perm) {
+    chmodSync(path, perm);
+  }
 }
