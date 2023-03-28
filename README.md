@@ -21,6 +21,7 @@ This will generate a set of binaries in `./releases`. Run the one you wish to us
 * [Connecting to a Lattice](#connecting-to-a-lattice)
 * [Commands](#commands)
   * [Export ETH2 Deposit Data](#export-eth2-deposit-data)
+  * [Change Withdrawal Credentials](#change-withdrawal-credentials)
   * [Get Address](#get-address)
   * [Get Public Key](#get-public-key)
 
@@ -60,7 +61,7 @@ Connection data is saved to a local `.env` file, so be aware that if you delete 
 
 There are a series of commands you can use to interact with your Lattice. 
 
-## ↪️ Export ETH2 Deposit Data
+## <a id="export-eth2-deposit-data">↪️ Export ETH2 Deposit Data</a>
 
 If your Lattice is on firmware v0.17.0 or greater, you have access to your BLS keys and signatures. You can use your Lattice to generate data necessary to start one or more validators. For more background information on the data being generated, see [this GridPlus resource](https://gridplus.github.io/gridplus-sdk/tutorials/ethDeposits).
 
@@ -125,7 +126,39 @@ Once you decline to generate data for the next validator, the process will ask w
 * `{outDir}/deposit-X-{timestamp}.json` (either `-data-` or `-calldata`, depending on selected export type)
 * For each validator index `i`: `{outDir}/keystore-m_12381_3600_{i}_0_0-{timestamp}.json`
 
-## ↪️ Get Public Key
+## ↪️ Change Withdrawal Credentials
+
+In order to withdraw from an ETH2 validator, the withdrawal credentials must map to an ETH1 address (i.e. `keccak(pubkey)[:20]`). Originally, only BLS addresses (technically these are G1 public keys on the bls12-381 curve) were supported for withdrawal credentials -- this is a "type `0x00`" credential. At some point this changed to allow ETH1 addresses in the credentials (type `0x01`). If you have a legacy `0x00` type credential, for one or more validators, you will need to switch over to the `0x01` type before you can start withdrawing funds (even if you are not exiting). This can be done with the change credential command: `Change Validator Withdrawal Credentials`
+
+### 1️⃣ Setup
+
+You will be asked a series of questions about your validators. Some of them are sanity checks. Note that you cannot change a validator's credentials if they are already `0x01`.
+
+First, you will be asked if you currently have type 0 credentials you would like to change. You should answer yes.
+
+Next, you will be asked if the validators for whom you are changing credentials are both derived from the default [EIP2334](https://eips.ethereum.org/EIPS/eip-2334) path and if they are sequentially derived (e.g. `m/12381/3600/0/0`, `m/12381/3600/1/0`, `m/12381/3600/2/0`, etc).
+
+If you answered yes above, you will be asked what the starting derivation index is. Otherwise, each iteration of the ensuing loop will ask for the full derivation path of the validator whose credentials you wish to change.
+
+Finally, you will be asked for an ETH1 address to use in the new type `0x01` credentials. Note that this will be used for *all* credential changes you create in the ensuing loop. If you wish to use different ETH1 addresses, you need to run this tool multiple times.
+
+### 2️⃣ Change credentials
+
+The CLI will now start generating change credentials data. For each credential you wish to change, the following questions will be asked:
+
+1. What is the network index of the validator? This can be found when you search for your validator's public key in e.g. https://beaconcha.in.
+2. After looking at the change data, confirm that you want to update these credentials.
+3. After signing the change data on your Lattice: do you want to change credentials for the next validator? NOTE: if using the default path, this will be the next EIP2334 derivation index -- otherwise, it is just "another" validator with a derivation path of your choosing).
+
+### 3️⃣ Exporting data
+
+Once you tell the CLI you are done updating validator credentials, it will generate a JSON file locally with all the data you need. You will need to take this file and move it (e.g. via [scp](https://www.computerhope.com/unix/scp.htm)) to your validator box. As per [this guide](https://notes.ethereum.org/@launchpad/withdrawals-guide), you can flag your consensus client software (e.g. Lighthouse) with this file to execute the change(s):
+
+```shell
+curl -d @<PATH_TO_JSON_FILE> -H "Content-Type: application/json" -X POST 127.0.0.1:4000/eth/v1/beacon/pool/bls_to_execution_changes
+```
+
+## <a id="get-public-key">↪️ Get Public Key</a>
 
 If you would like to get a public key for a supported curve (see below table) you can request its hex-string representation using a BIP39 derivation path. As with other methods, the returned pubkey will be derived from the target Lattice's current active wallet.
 
@@ -135,7 +168,7 @@ If you would like to get a public key for a supported curve (see below table) yo
 | `ed25519` | 32 | N/A |
 | `bls12_381_g1` | 48 | `{X}` |
 
-## ↪️ Get Address
+## <a id="get-address">↪️ Get Address</a>
 
 The Lattice is able to export a few types of *formatted* addresses, which depend on the BIP39 derivation path specified (specifically on the first two path indices, `purpose`, and `coin_type`, respectively):
 

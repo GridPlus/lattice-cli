@@ -41,14 +41,17 @@ export async function cmdChangeBLSCredentials(client: Client) {
     return;
   }
   console.log('');
-  const startIdx = await promptForNumber(
-    "What is the starting derivation index of the validator(s) you wish to change? ",
-    0,
-  );
   const useDefaultPaths = await promptForBool(
-    "Did you use the default BLS withdrawal path to generate your withdrawal credentials? ",
+    "Are these validators derived from the default path (EIP2334) and are they sequential?",
     true
   );
+  let startIdx = 0;
+  if (useDefaultPaths) {
+    startIdx = await promptForNumber(
+      "What is the derivation index of the first validator(s) you wish to change? ",
+      0,
+    );
+  }
   let eth1Addr = await promptForString(
     "Please enter the ETH1 address you wish to use for your new withdrawal credentials: ",
     "0x"
@@ -173,8 +176,8 @@ export async function cmdChangeBLSCredentials(client: Client) {
       `and run the following command:\n` +
       `\n-----------------------\n` +
       `curl -d @${fName} -H "Content-Type: application/json" -X POST 127.0.0.1:4000/eth/v1/beacon/pool/bls_to_execution_changes` +
-      `\n-----------------------\n\n`,
-      `For more details, please see this guide: https://notes.ethereum.org/@launchpad/withdrawals-guide`
+      `\n-----------------------\n\n` +
+      `For more details, please see this guide: https://notes.ethereum.org/@launchpad/withdrawals-guide`,
       'green'
     );
   }

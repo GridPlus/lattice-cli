@@ -50,6 +50,7 @@ Once connected to your device, you can interact with its active wallet to:\n\
 - Request formatted (Ethereum or Bitcoin) addresses\n\
 - Request public keys\n\
 - Generate validator deposit data\n\
+- Change validator withdrawal credentials\n\
 `
 const WARNING_MSG =
 `\
