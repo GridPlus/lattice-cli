@@ -158,6 +158,8 @@ Once you tell the CLI you are done updating validator credentials, it will gener
 curl -d @<PATH_TO_JSON_FILE> -H "Content-Type: application/json" -X POST 127.0.0.1:4000/eth/v1/beacon/pool/bls_to_execution_changes
 ```
 
+> NOTE: You are calling your beacon node software with the above `curl` request, so make sure you are using the correct port. For example, lighthouse's default port is `5052` rather than the `4000` specified by the guide.
+
 ## <a id="get-public-key">↪️ Get Public Key</a>
 
 If you would like to get a public key for a supported curve (see below table) you can request its hex-string representation using a BIP39 derivation path. As with other methods, the returned pubkey will be derived from the target Lattice's current active wallet.
