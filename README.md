@@ -160,6 +160,8 @@ curl -d @<PATH_TO_JSON_FILE> -H "Content-Type: application/json" -X POST 127.0.0
 
 > NOTE: You are calling your beacon node software with the above `curl` request, so make sure you are using the correct port. For example, lighthouse's default port is `5052` rather than the `4000` specified by the guide.
 
+If you don't want to move files or use your node at all, you can go to [beaconcha.in's broadcast tool](https://mainnet.beaconcha.in/tools/broadcast) and paste in the contents of the generated file.
+
 ## <a id="get-public-key">↪️ Get Public Key</a>
 
 If you would like to get a public key for a supported curve (see below table) you can request its hex-string representation using a BIP39 derivation path. As with other methods, the returned pubkey will be derived from the target Lattice's current active wallet.
