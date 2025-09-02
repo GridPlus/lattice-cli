@@ -6,7 +6,8 @@ import {
   cmdChangeBLSCredentials,
   cmdGenDepositData, 
   cmdGetAddresses, 
-  cmdGetPubkeys 
+  cmdGetPubkeys,
+  cmdSignEIP712 
 } from "./commands";
 import { clearPrintedLines } from "./utils";
 
@@ -64,6 +65,7 @@ export const promptForCommand = async (client: Client) => {
       COMMANDS.CHANGE_BLS_WITHDRAWAL_CREDS,
       COMMANDS.GET_ADDRESS,
       COMMANDS.GET_PUBLIC_KEY,
+      COMMANDS.SIGN_EIP712,
       COMMANDS.EXIT,
     ],
   });
@@ -81,6 +83,9 @@ export const promptForCommand = async (client: Client) => {
         break;
       case COMMANDS.CHANGE_BLS_WITHDRAWAL_CREDS:
         await cmdChangeBLSCredentials(client);
+        break;
+      case COMMANDS.SIGN_EIP712:
+        await cmdSignEIP712(client);
         break;
       case COMMANDS.EXIT:
         process.exit(0);

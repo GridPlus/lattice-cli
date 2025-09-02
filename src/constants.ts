@@ -4,6 +4,7 @@ const COMMANDS = {
   EXPORT_DEPOSIT_DATA: 'Export Validator Deposit Data',
   GET_ADDRESS: 'Get Address',
   GET_PUBLIC_KEY: 'Get Public Key',
+  SIGN_EIP712: 'Sign EIP-712 Data',
 };
 
 const DEFAULT_PATHS = {

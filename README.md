@@ -24,6 +24,7 @@ This will generate a set of binaries in `./releases`. Run the one you wish to us
   * [Change Withdrawal Credentials](#change-withdrawal-credentials)
   * [Get Address](#get-address)
   * [Get Public Key](#get-public-key)
+  * [Sign EIP-712 Data](#sign-eip-712-data)
 
 # 🔗 Connecting to a Lattice
 
@@ -182,3 +183,110 @@ The Lattice is able to export a few types of *formatted* addresses, which depend
 | `84'` | `0'` | Bitcoin bech32 | `bc1...` |
 | `49'` | `0'` | Bitcoin wrapped segwit | `3...` |
 | `44'` | `0'` | Bitcoin legacy | `1...` |
+
+
+## <a id="sign-eip-712-data">🔏 Sign EIP-712 Data</a>
+
+The Lattice can sign [EIP-712](https://eips.ethereum.org/EIPS/eip-712) typed structured data, which is commonly used by DeFi protocols, DAOs, and modern dApps for operations like token permits, governance voting, and order signing.
+
+### What is EIP-712?
+
+EIP-712 is a standard for hashing and signing typed structured data. Unlike regular message signing, EIP-712 provides:
+- **Type safety**: Data is strongly typed with a defined schema
+- **Human readability**: Users can see exactly what they're signing
+- **Domain separation**: Prevents signatures from being replayed across different applications
+
+### Using the Sign EIP-712 Command
+
+When you select the `Sign EIP-712 Data` command, you'll be prompted to provide the typed data in one of two ways:
+
+1. **From a JSON file**: Provide the path to a JSON file containing the EIP-712 data
+2. **Direct input**: Paste the JSON directly into the CLI
+
+### EIP-712 Data Format
+
+The JSON must contain the following fields:
+
+```json
+{
+  "types": {
+    "EIP712Domain": [...],
+    "YourMessageType": [...]
+  },
+  "primaryType": "YourMessageType",
+  "domain": {
+    "name": "Application Name",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0x..."
+  },
+  "message": {
+    // Your actual message data
+  }
+}
+```
+
+### Example: Token Permit
+
+A common use case is EIP-2612 token permits. See `sample-eip712.json` for a complete example:
+
+```json
+{
+  "types": {
+    "EIP712Domain": [
+      { "name": "name", "type": "string" },
+      { "name": "version", "type": "string" },
+      { "name": "chainId", "type": "uint256" },
+      { "name": "verifyingContract", "type": "address" }
+    ],
+    "Permit": [
+      { "name": "owner", "type": "address" },
+      { "name": "spender", "type": "address" },
+      { "name": "value", "type": "uint256" },
+      { "name": "nonce", "type": "uint256" },
+      { "name": "deadline", "type": "uint256" }
+    ]
+  },
+  "primaryType": "Permit",
+  "domain": {
+    "name": "MyToken",
+    "version": "1",
+    "chainId": 1,
+    "verifyingContract": "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
+  },
+  "message": {
+    "owner": "0x1234567890123456789012345678901234567890",
+    "spender": "0x2345678901234567890123456789012345678901",
+    "value": 1000000000000000000,
+    "nonce": 0,
+    "deadline": 1234567890
+  }
+}
+```
+
+### Signing Process
+
+1. The CLI will validate your EIP-712 data structure
+2. You'll see a formatted preview of what you're about to sign
+3. After confirmation, the request is sent to your Lattice
+4. Confirm the signature on your Lattice device
+5. The signature is returned in multiple formats:
+   - **Full signature**: Complete hex string (65 bytes)
+   - **Components**: Separate v, r, s values for use in smart contracts
+
+### Saving Signatures
+
+After signing, you can optionally save the signature to a JSON file that includes:
+- The complete signature
+- Individual v, r, s components
+- The original typed data
+- A timestamp
+
+This is useful for record-keeping or for later submission to smart contracts or dApps.
+
+### Security Notes
+
+- Always verify the domain and message contents before signing
+- The Lattice will display key information about what you're signing
+- Never sign data from untrusted sources
+- Signatures are binding and cannot be revoked once used on-chain
