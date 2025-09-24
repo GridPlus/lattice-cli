@@ -108,7 +108,7 @@ In order to make a deposit and start an ETH validator, you need to make an on-ch
 
 You will be presented with two options for data export type:
 
-1. **JSON file for Ethereum Launchpad (default)** - if you choose this option, the CLI will create a `deposit-data-{timestamp}.json` file containing an array of objects mapping to the set of validators you want to create. You can take this `.json` file and drop it directly into the [Launchpad](https://launchpade.ethereum.org).
+1. **JSON file for Ethereum Launchpad (default)** - if you choose this option, the CLI will create a `deposit-data-{timestamp}.json` file containing an array of objects mapping to the set of validators you want to create. You can take this `.json` file and drop it directly into the [Launchpad](https://launchpad.ethereum.org).
 2. **Raw transaction calldata** - if you choose this option, the CLI will create a `deposit-calldata-{timestamp}.json` file which contains an array of objects, each of which has a pubkey (for reference) and the raw transaction calldata which should be included in a transaction to the deposit contract. This is a more advanced option, so care should be taken if you choose it. For example, your deposit transaction's `msg.value` *must* match the amount specified when creating the data.
 
 ### 5️⃣ Build Deposit Data
